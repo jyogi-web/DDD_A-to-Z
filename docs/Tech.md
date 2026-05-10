@@ -5,12 +5,12 @@
 | レイヤー | 技術 | 選定理由 |
 |---|---|---|
 | フロントエンド | React + Vite | 決定済み |
-| 通信 | Protobuf + Connect | 将来の多言語対応の基盤 |
-| バックエンド (MVP) | Go | Protobuf周りの成熟度・Webhook処理のシンプルさ |
+| 通信 | HTTP JSON | MVPでは画面とGo APIの開発速度を優先 |
+| バックエンド (MVP) | Go | GitHub連携と集計処理をシンプルに実装できる |
 | DB | PostgreSQL | 勢力データの永続化 |
-| キャッシュ | Valkey | リアルタイムランキング集計 |
-| GitHub連携 | Webhook + REST API | リアルタイム受信 + 初期データ取り込み |
-| スキーマ管理 | buf CLI | .protoの単一ソース管理 |
+| GitHub連携 | OAuth + REST API | まずはユーザー連携と直近活動の取り込みに絞る |
+
+Valkey、Protobuf + Connect、buf、Webhook常時受信は、MVP後に必要性が見えた段階で導入する。
 
 ## A〜Z 技術割り当て（たたき台）
 
@@ -22,7 +22,7 @@
 | D | Deno | 補助CLIツール |
 | E | Elixir | リアルタイムWebSocket通知 |
 | F | F# | 関数型バックエンドサービス |
-| G | Go | MVPバックエンド / BFF・worker |
+| G | Go | MVPバックエンド / 将来のBFF・worker |
 | H | Haskell | 勢力計算ロジックサービス |
 | I | 未定 | Infra定義系（Terraform / Nix） |
 | J | Java | バックエンドサービスの一つ |
@@ -47,7 +47,7 @@ I・Q・U・Xの4つが未確定。
 
 ## フェーズ計画
 
-**MVP** — React + Go + PostgreSQL + GitHub連携。Protobufスキーマだけは最初から丁寧に設計する。ここが後続の全言語実装の契約になるため手を抜かない。
+**MVP** — React + Go + PostgreSQL + GitHub連携。GitHubの直近活動を言語別ポイントに変換し、シーズン内ランキングと自分の貢献ログとして表示する。
 
 **拡張期** — MVPのGoサービスを動かしながら、Java・Python・Rustを順次バックエンドサービスとして追加していく。各サービスは同じ `.proto` を実装するだけで接続できる構成にする。`web-bff-go` が画面向けの集約を担い、`worker-go` が必要に応じて言語別サービスを呼び出す。
 
@@ -55,4 +55,4 @@ I・Q・U・Xの4つが未確定。
 
 ## 設計上の最重要判断
 
-`.proto` スキーマを最初にきちんと作ること。バックエンドが何言語に増えても全員が同じインターフェース契約を実装する構成なので、ここが崩れると全言語を直す羽目になる。MVPの段階で `FactionService` と `GitHubEventService` の2つのサービス定義は確定させておきたい。
+MVPの最重要判断は、コア体験を「GitHub活動が言語勢力ランキングに反映されること」に絞ること。多言語サービス化や `.proto` 契約は魅力的だが、最初から固定すると検証速度が落ちる。まずはGo単体のHTTP APIでドメインモデルを固め、サービス分割が必要になった時点でProtobuf + Connectへ移行する。
