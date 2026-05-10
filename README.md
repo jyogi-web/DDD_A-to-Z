@@ -20,6 +20,12 @@ pnpm install
 pnpm dev
 ```
 
+初回の `pnpm install` 後に Lefthook が Git hooks を設定します。手動で入れ直す場合は以下を実行してください。
+
+```bash
+pnpm prepare
+```
+
 起動後の URL は以下です。
 
 - Web: http://localhost:5173

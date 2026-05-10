@@ -8,9 +8,11 @@
     "build": "turbo run build",
     "test": "turbo run test",
     "lint": "turbo run lint",
-    "format": "turbo run format"
+    "format": "turbo run format",
+    "prepare": "lefthook install"
   },
   "devDependencies": {
+    "lefthook": "^2.1.6",
     "turbo": "^2.9.12"
   }
 }
