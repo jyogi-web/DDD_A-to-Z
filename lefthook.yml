@@ -1,0 +1,15 @@
+pre-commit:
+  parallel: true
+  commands:
+    web-lint:
+      root: apps/web
+      run: pnpm lint
+    api-lint:
+      root: services/api
+      run: pnpm lint
+
+pre-push:
+  commands:
+    verify:
+      glob: "*"
+      run: pnpm lint && pnpm test && pnpm build
