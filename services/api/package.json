@@ -1,0 +1,12 @@
+{
+  "name": "@lang-war/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "GOCACHE=$(pwd)/.cache/go-build go run ./cmd/server",
+    "build": "mkdir -p .cache/bin && GOCACHE=$(pwd)/.cache/go-build go build -o .cache/bin/lang-war-api ./cmd/server",
+    "test": "GOCACHE=$(pwd)/.cache/go-build go test ./...",
+    "lint": "test -z \"$(gofmt -l cmd)\"",
+    "format": "gofmt -w cmd"
+  }
+}
