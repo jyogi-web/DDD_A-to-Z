@@ -17,6 +17,7 @@
         devShells.default = pkgs.mkShell {
           packages = [
             pkgs.git
+            pkgs.golangci-lint
             pkgs.nodejs_24
             pnpmPackage
             goPackage

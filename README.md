@@ -43,7 +43,7 @@ pnpm build
 pnpm format
 ```
 
-ルートのコマンドは各言語・各 workspace の検証を呼び出すための入口です。TypeScript の整形は `apps/web` の Prettier、Go の整形は `gofmt` が担当します。
+ルートのコマンドは各言語・各 workspace の検証を呼び出すための入口です。TypeScript の検証は `apps/web` の Oxlint / Oxfmt、Go の lint は `golangci-lint`、Go の整形は `gofmt` が担当します。
 monorepo のタスク実行は Turbo で管理します。
 
 ## Requirements
