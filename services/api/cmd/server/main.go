@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -12,11 +13,19 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
+		var body bytes.Buffer
+
+		if err := json.NewEncoder(&body).Encode(map[string]string{"status": "ok"}); err != nil {
+			logger.Error("failed to encode health response", "error", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
-		if err := json.NewEncoder(w).Encode(map[string]string{"status": "ok"}); err != nil {
-			logger.Error("failed to encode health response", "error", err)
+		if _, err := w.Write(body.Bytes()); err != nil {
+			logger.Error("failed to write health response", "error", err)
 		}
 	})
 
