@@ -9,6 +9,10 @@
       "cache": false,
       "persistent": true
     },
+    "react-doctor": {
+      "dependsOn": ["^react-doctor"],
+      "outputs": []
+    },
     "format": {
       "cache": false
     },

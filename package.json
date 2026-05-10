@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
+    "react-doctor": "turbo run react-doctor",
     "test": "turbo run test",
     "lint": "turbo run lint",
     "format": "turbo run format",

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "react-doctor": "react-doctor . --yes --offline --fail-on none",
     "lint": "tsc --noEmit && oxlint --fix",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
@@ -29,6 +30,7 @@
     "globals": "^17.5.0",
     "oxfmt": "^0.48.0",
     "oxlint": "^1.63.0",
+    "react-doctor": "^0.1.6",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.2",
     "vite": "^8.0.10",

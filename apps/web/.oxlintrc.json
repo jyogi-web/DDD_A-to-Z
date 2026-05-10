@@ -1,5 +1,8 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "jsPlugins": [
+    { "name": "react-doctor", "specifier": "react-doctor/oxlint-plugin" }
+  ],
   "plugins": [],
   "categories": {
     "correctness": "off"
@@ -8,6 +11,10 @@
     "builtin": true
   },
   "ignorePatterns": ["dist"],
+  "rules": {
+    "react-doctor/no-derived-state-effect": "warn",
+    "react-doctor/no-fetch-in-effect": "warn"
+  },
   "overrides": [
     {
       "files": ["**/*.{ts,tsx}"],
