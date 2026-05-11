@@ -5,6 +5,10 @@
   "packageManager": "pnpm@10.33.2",
   "scripts": {
     "dev": "turbo run dev",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:status": "docker compose ps postgres",
+    "db:reset": "docker compose down -v && docker compose up -d postgres",
     "build": "turbo run build",
     "react-doctor": "turbo run react-doctor",
     "test": "turbo run test",
