@@ -13,19 +13,19 @@ export function RustSamurai({ className = "", style }: RustSamuraiProps) {
   return (
     <motion.div
       className={className}
-      // 6コマすべてを等間隔で表示するためには、移動距離を「1コマ幅 × 全コマ数」にし、ステップ数を全コマ数に合わせます
-      animate={{ backgroundPositionX: ["0px", "-768px"] }}
+      // 本来の画像は 6コマ で縦長（1コマの比率が1:2）です。
+      // 高さを100%（128px）に合わせると、全体の幅は384pxになり、1コマは64pxになります。
+      animate={{ backgroundPositionX: ["0px", "-384px"] }}
       transition={{
         duration: 0.8,
         repeat: Infinity,
-        // CSS文字列の "steps()" だとFramer Motionが解釈できずスライド補完される場合があるため、JS側で強制的にステップ化する
         ease: steppedEase(6),
       }}
       style={{
-        width: "128px", // 親から上書き可能なデフォルトサイズ
+        width: "64px", // 1コマの幅に合わせることで、2人表示されるのを防ぎます
         height: "128px",
         backgroundImage: `url(${SPRITE_ASSETS.RUST_SAMURAI})`,
-        backgroundSize: "768px 128px", // 128px * 6コマ
+        backgroundSize: "auto 100%", // 高さを基準にアスペクト比を維持（潰れないようにする）
         backgroundRepeat: "no-repeat",
         imageRendering: "pixelated", // ドット絵がぼやけないようにする
         ...style,

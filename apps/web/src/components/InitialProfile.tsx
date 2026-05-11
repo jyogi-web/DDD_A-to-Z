@@ -232,12 +232,7 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
               // 背景の四角形（border, background, boxShadow）を削除して、キャラクターが直接浮いているようにする
             }}
           >
-            <RustSamurai
-              style={{
-                width: "100%",
-                height: "100%",
-              }}
-            />
+            <RustSamurai />
           </motion.div>
           {/* 影 */}
           <motion.div
