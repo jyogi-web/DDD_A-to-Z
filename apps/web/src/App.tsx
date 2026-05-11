@@ -1,3 +1,4 @@
+import { useState, useEffect, useCallback } from "react";
 import { motion, type Variants } from "framer-motion";
 import "./App.css";
 import { ParticleBackground } from "./components/ParticleBackground";
@@ -28,18 +29,36 @@ const itemVariants: Variants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
 };
 
+/** 時刻（hour）から昼夜を判定する */
+function isDaytime(hour: number): boolean {
+  return hour >= 6 && hour < 18;
+}
+
 function App() {
-  const handleLogin = () => {
+  const [isDay, setIsDay] = useState(() => isDaytime(new Date().getHours()));
+
+  // 毎分チェックして日没・夜明けをリアルタイム反映
+  useEffect(() => {
+    const tick = () => setIsDay(isDaytime(new Date().getHours()));
+    const id = setInterval(tick, 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const handleLogin = useCallback(() => {
     // TODO: GitHub OAuth 連携実装後にここでリダイレクト
     window.location.href = "/api/auth/github";
-  };
+  }, []);
+
+  const bgImage = isDay ? "url('/pixel-town-day.png')" : "url('/pixel-town-night.png')";
+  const overlay = isDay
+    ? "linear-gradient(180deg, rgba(20,40,80,0.45) 0%, rgba(20,40,80,0.22) 50%, rgba(20,40,80,0.55) 100%)"
+    : "linear-gradient(180deg, rgba(10,10,30,0.72) 0%, rgba(10,10,30,0.45) 50%, rgba(10,10,30,0.82) 100%)";
 
   return (
     <div
       style={{
         minHeight: "100svh",
-        /* ドット絵ファンタジー町の背景画像 */
-        backgroundImage: "url('/pixel-town-bg.png')",
+        backgroundImage: bgImage,
         backgroundSize: "cover",
         backgroundPosition: "center bottom",
         backgroundRepeat: "no-repeat",
@@ -50,16 +69,21 @@ function App() {
         justifyContent: "center",
         padding: "2rem 1rem",
         overflow: "hidden",
+        /* 背景画像の切り替えをフェードさせる */
+        transition: "background-image 2s ease",
       }}
     >
-      {/* 暗めのグラデーションオーバーレイ（テキスト視認性確保） */}
-      <div
+      {/* グラデーションオーバーレイ（昼夜で調整） */}
+      <motion.div
         aria-hidden="true"
+        animate={{ opacity: 1 }}
+        key={isDay ? "day-overlay" : "night-overlay"}
+        initial={{ opacity: 0 }}
+        transition={{ duration: 1.5 }}
         style={{
           position: "fixed",
           inset: 0,
-          background:
-            "linear-gradient(180deg, rgba(10,10,30,0.72) 0%, rgba(10,10,30,0.45) 50%, rgba(10,10,30,0.82) 100%)",
+          background: overlay,
           pointerEvents: "none",
           zIndex: 0,
         }}
