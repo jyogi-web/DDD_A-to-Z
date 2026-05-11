@@ -6,22 +6,26 @@ interface RustSamuraiProps {
   style?: React.CSSProperties;
 }
 
+const steppedEase = (steps: number) => (t: number) => Math.floor(t * steps) / steps;
+
 export function RustSamurai({ className = "", style }: RustSamuraiProps) {
+  
   return (
     <motion.div
       className={className}
-      animate={{ backgroundPositionX: ["0%", "100%"] }}
+      // 6コマすべてを等間隔で表示するためには、移動距離を「1コマ幅 × 全コマ数」にし、ステップ数を全コマ数に合わせます
+      animate={{ backgroundPositionX: ["0px", "-768px"] }}
       transition={{
         duration: 0.8,
         repeat: Infinity,
-        // TypeScriptのエラーを回避するため `unknown` を経由して型キャストしつつ、指定の "steps(5)" を適用
-        ease: "steps(5)" as unknown as NonNullable<import("framer-motion").Transition["ease"]>,
+        // CSS文字列の "steps()" だとFramer Motionが解釈できずスライド補完される場合があるため、JS側で強制的にステップ化する
+        ease: steppedEase(6),
       }}
       style={{
         width: "128px", // 親から上書き可能なデフォルトサイズ
         height: "128px",
         backgroundImage: `url(${SPRITE_ASSETS.RUST_SAMURAI})`,
-        backgroundSize: "600% 100%", // 6コマなので幅は600%
+        backgroundSize: "768px 128px", // 128px * 6コマ
         backgroundRepeat: "no-repeat",
         imageRendering: "pixelated", // ドット絵がぼやけないようにする
         ...style,

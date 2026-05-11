@@ -2,5 +2,5 @@
 // 後からの画像差し替えを容易にする設計
 export const SPRITE_ASSETS = {
   // 暫定対応: 全言語共通でRustの侍をサンプルとして表示
-  RUST_SAMURAI: "/assets/rust_samurai_sheet.png",
+  RUST_SAMURAI: "/character/rust_samurai_sheet.png",
 } as const;

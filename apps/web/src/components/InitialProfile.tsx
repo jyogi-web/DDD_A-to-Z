@@ -226,12 +226,10 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
             style={{
               width: "100%",
               height: "100%",
-              border: "2px solid rgba(255,255,255,0.1)",
-              background: "rgba(0,0,0,0.4)",
-              boxShadow: "inset 0 0 10px rgba(0,0,0,0.5)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              // 背景の四角形（border, background, boxShadow）を削除して、キャラクターが直接浮いているようにする
             }}
           >
             <RustSamurai
