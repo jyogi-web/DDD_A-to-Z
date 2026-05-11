@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, type Variants } from "framer-motion";
-import "./App.css";
 import { ParticleBackground } from "./components/ParticleBackground";
 import { TitleLogo } from "./components/TitleLogo";
 import { GitHubLoginButton } from "./components/GitHubLoginButton";
