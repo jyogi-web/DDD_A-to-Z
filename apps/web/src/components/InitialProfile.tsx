@@ -1,13 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { ParticleBackground } from "./ParticleBackground";
+import { RustSamurai } from "./RustSamurai";
 
-// アセット管理用のMap定義
-const SPRITE_ASSETS = {
-  // 後からの画像差し替えを容易にする設計
-  // 暫定対応: 全言語共通でRustの侍をサンプルとして表示
-  RUST_SAMURAI: "/assets/sprites/rust_samurai.png",
-} as const;
+
 
 interface InitialProfileProps {
   onComplete: (username: string) => void;
@@ -215,11 +211,15 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
             }}
           />
 
-          {/* カクカク浮遊するアバター */}
+          {/* ガクガクと呼吸するアバター */}
           <motion.div
-            animate={{ y: [0, -12, 0] }}
+            animate={{ 
+              scaleY: [1, 1.05, 1],
+              scaleX: [1, 0.98, 1],
+              y: [0, -4, 0]
+            }}
             transition={{
-              duration: 1.2,
+              duration: 1.5,
               repeat: Infinity,
               ease: steppedEase(4),
             }}
@@ -234,35 +234,18 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
               justifyContent: "center",
             }}
           >
-            <img
-              src={SPRITE_ASSETS.RUST_SAMURAI}
-              alt="Rust Samurai"
+            <RustSamurai
               style={{
                 width: "100%",
                 height: "100%",
-                objectFit: "contain",
-                imageRendering: "pixelated",
-              }}
-              onError={(e) => {
-                // 画像がない場合のフォールバック（暫定対応）
-                e.currentTarget.style.display = "none";
-                const parent = e.currentTarget.parentElement;
-                if (parent && !parent.querySelector('.fallback-text')) {
-                  const span = document.createElement('span');
-                  span.className = 'fallback-text';
-                  span.style.color = '#666';
-                  span.style.fontSize = '0.8rem';
-                  span.textContent = 'NO SPRITE';
-                  parent.appendChild(span);
-                }
               }}
             />
           </motion.div>
           {/* 影 */}
           <motion.div
-            animate={{ scale: [1, 0.8, 1], opacity: [0.5, 0.2, 0.5] }}
+            animate={{ scale: [1, 0.9, 1], opacity: [0.5, 0.3, 0.5] }}
             transition={{
-              duration: 1.2,
+              duration: 1.5,
               repeat: Infinity,
               ease: steppedEase(4),
             }}
