@@ -4,6 +4,7 @@ import { ParticleBackground } from "./components/ParticleBackground";
 import { TitleLogo } from "./components/TitleLogo";
 import { GitHubLoginButton } from "./components/GitHubLoginButton";
 import { InitialProfile } from "./components/InitialProfile";
+import { ContributionAnalysis } from "./components/ContributionAnalysis";
 
 // ギルド一覧（チラ見せ用）
 const GUILDS = [
@@ -39,6 +40,7 @@ function App() {
   const [isProfileMode, setIsProfileMode] = useState(() =>
     window.location.search.includes("profile=1"),
   );
+  const isAnalysisMode = window.location.search.includes("analysis=1");
 
   // 毎分チェックして日没・夜明けをリアルタイム反映
   useEffect(() => {
@@ -57,8 +59,16 @@ function App() {
       <InitialProfile
         onComplete={(username) => {
           console.log("Profile created:", username);
-          alert(`Welcome to the Lang War, ${username}!\n(Mock routing to next phase...)`);
-          // モック用：プロフ完了後にトップに戻るか次へ進む
+          window.location.href = "/?analysis=1";
+        }}
+      />
+    );
+  }
+
+  if (isAnalysisMode) {
+    return (
+      <ContributionAnalysis
+        onComplete={() => {
           window.location.href = "/";
         }}
       />
@@ -261,7 +271,7 @@ function App() {
         </motion.p>
 
         {import.meta.env.DEV && (
-          <motion.div variants={itemVariants} style={{ marginTop: "2rem" }}>
+          <motion.div variants={itemVariants} style={{ marginTop: "2rem", display: "flex", gap: "8px", justifyContent: "center" }}>
             <button
               onClick={() => setIsProfileMode(true)}
               style={{
@@ -274,7 +284,21 @@ function App() {
                 cursor: "pointer",
               }}
             >
-              [DEV] ユーザー登録画面モックを開く
+              [DEV] ユーザー登録
+            </button>
+            <button
+              onClick={() => { window.location.href = "/?analysis=1"; }}
+              style={{
+                padding: "8px 16px",
+                fontFamily: '"DotGothic16", monospace',
+                fontSize: "0.8rem",
+                background: "transparent",
+                border: "1px solid #00f5ff40",
+                color: "#00f5ff80",
+                cursor: "pointer",
+              }}
+            >
+              [DEV] 解析画面
             </button>
           </motion.div>
         )}
