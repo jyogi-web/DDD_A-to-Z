@@ -5,6 +5,7 @@ import { TitleLogo } from "./components/TitleLogo";
 import { GitHubLoginButton } from "./components/GitHubLoginButton";
 import { InitialProfile } from "./components/InitialProfile";
 import { ContributionAnalysis } from "./components/ContributionAnalysis";
+import { MyPage } from "./components/MyPage";
 
 // ギルド一覧（チラ見せ用）
 const GUILDS = [
@@ -42,6 +43,10 @@ function App() {
   );
   const isAnalysisMode =
     new URLSearchParams(window.location.search).get("analysis") === "1";
+  const isMyPageMode =
+    new URLSearchParams(window.location.search).get("mypage") === "1";
+  const isGuildMode =
+    new URLSearchParams(window.location.search).get("guild") === "1";
 
   // 毎分チェックして日没・夜明けをリアルタイム反映
   useEffect(() => {
@@ -69,10 +74,26 @@ function App() {
     return (
       <ContributionAnalysis
         onComplete={() => {
-          window.location.href = "/";
+          window.location.href = "/?mypage=1";
         }}
       />
     );
+  }
+
+  if (isMyPageMode) {
+    return (
+      <MyPage
+        onNavigate={(path) => {
+          window.location.href = path;
+        }}
+      />
+    );
+  }
+
+  if (isGuildMode) {
+    // TODO: Guild Dashboard implementation
+    window.location.href = "/?mypage=1";
+    return null;
   }
 
   const bgImage = isDay ? "url('/pixel-town-day.png')" : "url('/pixel-town-night.png')";
@@ -299,6 +320,20 @@ function App() {
               }}
             >
               [DEV] 解析画面
+            </button>
+            <button
+              onClick={() => { window.location.href = "/?mypage=1"; }}
+              style={{
+                padding: "8px 16px",
+                fontFamily: '"DotGothic16", monospace',
+                fontSize: "0.8rem",
+                background: "transparent",
+                border: "1px solid #39ff1440",
+                color: "#39ff1480",
+                cursor: "pointer",
+              }}
+            >
+              [DEV] マイページ
             </button>
           </motion.div>
         )}
