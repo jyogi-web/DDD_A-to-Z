@@ -6,7 +6,7 @@ CREATE TABLE users (
 
 CREATE TABLE github_accounts (
   github_id BIGINT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id),
+  user_id TEXT NOT NULL UNIQUE REFERENCES users(id),
   username TEXT NOT NULL,
   avatar_url TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL,
