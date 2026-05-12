@@ -8,6 +8,7 @@
 | 通信 | HTTP JSON | MVPでは画面とGo APIの開発速度を優先 |
 | バックエンド (MVP) | Go | GitHub連携と集計処理をシンプルに実装できる |
 | DB | PostgreSQL | 勢力データの永続化 |
+| DB schema管理 | Atlas | Go以外のサービスからも使える言語非依存の schema / migration 管理 |
 | GitHub連携 | OAuth + REST API | まずはユーザー連携と直近活動の取り込みに絞る |
 
 Valkey、Protobuf + Connect、buf、Webhook常時受信は、MVP後に必要性が見えた段階で導入する。

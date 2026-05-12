@@ -1,0 +1,51 @@
+name: CI Web
+
+permissions:
+  contents: read
+  actions: read
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ci-web.yml"
+      - "apps/web/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "turbo.json"
+      - "flake.lock"
+      - "flake.nix"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/ci-web.yml"
+      - "apps/web/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "turbo.json"
+      - "flake.lock"
+      - "flake.nix"
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v22
+
+      - name: Install dependencies
+        run: nix develop -c pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: nix develop -c pnpm --filter web lint
+
+      - name: Test
+        run: nix develop -c pnpm --filter web test
+
+      - name: Build
+        run: nix develop -c pnpm --filter web build

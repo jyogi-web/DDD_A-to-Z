@@ -1,0 +1,48 @@
+name: CI DB
+
+permissions:
+  contents: read
+  actions: read
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ci-db.yml"
+      - "atlas.hcl"
+      - "db/**"
+      - "package.json"
+      - "scripts/atlas.sh"
+      - "flake.lock"
+      - "flake.nix"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/ci-db.yml"
+      - "atlas.hcl"
+      - "db/**"
+      - "package.json"
+      - "scripts/atlas.sh"
+      - "flake.lock"
+      - "flake.nix"
+
+jobs:
+  db:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v22
+
+      - name: Validate schema source
+        run: nix develop -c ./scripts/atlas.sh schema inspect --env ci --url env://src --format '{{ sql . }}' > /dev/null
+
+      - name: Validate migrations
+        run: nix develop -c ./scripts/atlas.sh migrate validate --env ci
+
+      - name: Lint migrations
+        run: nix develop -c ./scripts/atlas.sh migrate lint --env ci
