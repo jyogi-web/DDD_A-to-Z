@@ -7,7 +7,7 @@ func TestEnvOrDefault(t *testing.T) {
 		t.Setenv("LANG_WAR_TEST_VALUE", "")
 
 		if got := EnvOrDefault("LANG_WAR_TEST_VALUE", "fallback"); got != "fallback" {
-			t.Fatalf("EnvOrDefault returned %q, want fallback", got)
+			t.Fatalf("EnvOrDefault の戻り値 = %q, 期待値 fallback", got)
 		}
 	})
 
@@ -15,7 +15,7 @@ func TestEnvOrDefault(t *testing.T) {
 		t.Setenv("LANG_WAR_TEST_VALUE", "configured")
 
 		if got := EnvOrDefault("LANG_WAR_TEST_VALUE", "fallback"); got != "configured" {
-			t.Fatalf("EnvOrDefault returned %q, want configured", got)
+			t.Fatalf("EnvOrDefault の戻り値 = %q, 期待値 configured", got)
 		}
 	})
 }

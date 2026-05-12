@@ -150,31 +150,31 @@ func TestUseCaseCompleteGitHubLogin(t *testing.T) {
 
 		start, err := usecase.BeginGitHubLogin(context.Background())
 		if err != nil {
-			t.Fatalf("BeginGitHubLogin returned error: %v", err)
+			t.Fatalf("BeginGitHubLogin がエラーを返しました: %v", err)
 		}
 		if start.State != "state-token" {
-			t.Fatalf("state = %q, want state-token", start.State)
+			t.Fatalf("state = %q, 期待値 state-token", start.State)
 		}
 
 		result, err := usecase.CompleteGitHubLogin(context.Background(), "code")
 		if err != nil {
-			t.Fatalf("CompleteGitHubLogin returned error: %v", err)
+			t.Fatalf("CompleteGitHubLogin がエラーを返しました: %v", err)
 		}
 
 		if result.User.ID == "" {
-			t.Fatal("user id should be set")
+			t.Fatal("ユーザーIDが設定されている必要があります")
 		}
 		if result.User.GitHubAccount.GitHubID != 123 {
-			t.Fatalf("github id = %d, want 123", result.User.GitHubAccount.GitHubID)
+			t.Fatalf("GitHub ID = %d, 期待値 123", result.User.GitHubAccount.GitHubID)
 		}
 		if result.User.GitHubAccount.Username != "octocat" {
-			t.Fatalf("username = %q, want octocat", result.User.GitHubAccount.Username)
+			t.Fatalf("ユーザー名 = %q, 期待値 octocat", result.User.GitHubAccount.Username)
 		}
 		if result.Session.Token != "session-token" {
-			t.Fatalf("session token = %q, want session-token", result.Session.Token)
+			t.Fatalf("セッショントークン = %q, 期待値 session-token", result.Session.Token)
 		}
 		if result.Session.UserID != result.User.ID {
-			t.Fatalf("session user id = %q, want %q", result.Session.UserID, result.User.ID)
+			t.Fatalf("セッションのユーザーID = %q, 期待値 %q", result.Session.UserID, result.User.ID)
 		}
 	})
 }
@@ -202,15 +202,15 @@ func TestUseCaseCurrentUser(t *testing.T) {
 
 		login, err := usecase.CompleteGitHubLogin(context.Background(), "code")
 		if err != nil {
-			t.Fatalf("CompleteGitHubLogin returned error: %v", err)
+			t.Fatalf("CompleteGitHubLogin がエラーを返しました: %v", err)
 		}
 
 		appUser, err := usecase.CurrentUser(context.Background(), "session-token")
 		if err != nil {
-			t.Fatalf("CurrentUser returned error: %v", err)
+			t.Fatalf("CurrentUser がエラーを返しました: %v", err)
 		}
 		if appUser.ID != login.User.ID {
-			t.Fatalf("current user id = %q, want %q", appUser.ID, login.User.ID)
+			t.Fatalf("現在のユーザーID = %q, 期待値 %q", appUser.ID, login.User.ID)
 		}
 	})
 }

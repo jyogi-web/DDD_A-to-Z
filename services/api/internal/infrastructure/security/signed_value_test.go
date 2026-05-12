@@ -12,15 +12,15 @@ func TestSignedValueCodecVerify(t *testing.T) {
 
 		signedValue, err := codec.Sign("state-token", expiresAt)
 		if err != nil {
-			t.Fatalf("Sign returned error: %v", err)
+			t.Fatalf("Sign がエラーを返しました: %v", err)
 		}
 
 		got, err := codec.Verify(signedValue, time.Date(2026, 5, 12, 12, 0, 0, 0, time.UTC))
 		if err != nil {
-			t.Fatalf("Verify returned error: %v", err)
+			t.Fatalf("Verify がエラーを返しました: %v", err)
 		}
 		if got != "state-token" {
-			t.Fatalf("Verify returned %q, want state-token", got)
+			t.Fatalf("Verify の戻り値 = %q, 期待値 state-token", got)
 		}
 	})
 }
@@ -32,11 +32,11 @@ func TestSignedValueCodecRejectsExpiredValue(t *testing.T) {
 
 		signedValue, err := codec.Sign("state-token", expiresAt)
 		if err != nil {
-			t.Fatalf("Sign returned error: %v", err)
+			t.Fatalf("Sign がエラーを返しました: %v", err)
 		}
 
 		if _, err := codec.Verify(signedValue, time.Date(2026, 5, 12, 12, 1, 0, 0, time.UTC)); err != ErrInvalidSignedValue {
-			t.Fatalf("Verify error = %v, want ErrInvalidSignedValue", err)
+			t.Fatalf("Verify のエラー = %v, 期待値 ErrInvalidSignedValue", err)
 		}
 	})
 }

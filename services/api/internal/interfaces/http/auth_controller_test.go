@@ -53,14 +53,14 @@ func TestAuthControllerBeginGitHubLogin(t *testing.T) {
 		router.ServeHTTP(response, request)
 
 		if response.Code != stdhttp.StatusFound {
-			t.Fatalf("status code = %d, want %d", response.Code, stdhttp.StatusFound)
+			t.Fatalf("ステータスコード = %d, 期待値 %d", response.Code, stdhttp.StatusFound)
 		}
 
 		if got := response.Header().Get("Location"); got != "https://github.test/login?state=state-token" {
-			t.Fatalf("Location = %q, want GitHub auth URL", got)
+			t.Fatalf("Location = %q, 期待値 GitHub 認可URL", got)
 		}
 		if cookie := findCookie(response.Result().Cookies(), oauthStateCookieName); cookie == nil {
-			t.Fatal("oauth state cookie should be set")
+			t.Fatal("OAuth state Cookie が設定されている必要があります")
 		}
 	})
 }
@@ -81,21 +81,21 @@ func TestAuthControllerCompleteGitHubLogin(t *testing.T) {
 		router.ServeHTTP(response, request)
 
 		if response.Code != stdhttp.StatusOK {
-			t.Fatalf("status code = %d, want %d", response.Code, stdhttp.StatusOK)
+			t.Fatalf("ステータスコード = %d, 期待値 %d", response.Code, stdhttp.StatusOK)
 		}
 
 		cookie := findCookie(response.Result().Cookies(), sessionCookieName)
 		if cookie == nil {
-			t.Fatal("lang_war_session cookie should be set")
+			t.Fatal("lang_war_session Cookie が設定されている必要があります")
 		}
 		if cookie.Value != "session-token" {
-			t.Fatalf("session cookie = %q, want session-token", cookie.Value)
+			t.Fatalf("セッションCookie = %q, 期待値 session-token", cookie.Value)
 		}
 		if !cookie.HttpOnly {
-			t.Fatal("session cookie should be HttpOnly")
+			t.Fatal("セッションCookie は HttpOnly である必要があります")
 		}
 		if cookie.SameSite != stdhttp.SameSiteLaxMode {
-			t.Fatalf("SameSite = %v, want Lax", cookie.SameSite)
+			t.Fatalf("SameSite = %v, 期待値 Lax", cookie.SameSite)
 		}
 
 		var body struct {
@@ -107,20 +107,20 @@ func TestAuthControllerCompleteGitHubLogin(t *testing.T) {
 			} `json:"user"`
 		}
 		if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
-			t.Fatalf("failed to decode response body: %v", err)
+			t.Fatalf("レスポンスボディのデコードに失敗しました: %v", err)
 		}
 
 		if body.User.ID == "" {
-			t.Fatal("response user id should be set")
+			t.Fatal("レスポンスのユーザーIDが設定されている必要があります")
 		}
 		if body.User.GitHubID != 123 {
-			t.Fatalf("github_id = %d, want 123", body.User.GitHubID)
+			t.Fatalf("github_id = %d, 期待値 123", body.User.GitHubID)
 		}
 		if body.User.Username != "octocat" {
-			t.Fatalf("username = %q, want octocat", body.User.Username)
+			t.Fatalf("username = %q, 期待値 octocat", body.User.Username)
 		}
 		if body.User.AvatarURL != "https://example.com/avatar.png" {
-			t.Fatalf("avatar_url = %q, want test avatar URL", body.User.AvatarURL)
+			t.Fatalf("avatar_url = %q, 期待値 テスト用アバターURL", body.User.AvatarURL)
 		}
 	})
 }
@@ -146,7 +146,7 @@ func TestAuthControllerCurrentUser(t *testing.T) {
 		router.ServeHTTP(response, request)
 
 		if response.Code != stdhttp.StatusOK {
-			t.Fatalf("status code = %d, want %d", response.Code, stdhttp.StatusOK)
+			t.Fatalf("ステータスコード = %d, 期待値 %d", response.Code, stdhttp.StatusOK)
 		}
 
 		var body struct {
@@ -156,13 +156,13 @@ func TestAuthControllerCurrentUser(t *testing.T) {
 			} `json:"user"`
 		}
 		if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
-			t.Fatalf("failed to decode response body: %v", err)
+			t.Fatalf("レスポンスボディのデコードに失敗しました: %v", err)
 		}
 		if body.User.ID == "" {
-			t.Fatal("response user id should be set")
+			t.Fatal("レスポンスのユーザーIDが設定されている必要があります")
 		}
 		if body.User.Username != "octocat" {
-			t.Fatalf("username = %q, want octocat", body.User.Username)
+			t.Fatalf("username = %q, 期待値 octocat", body.User.Username)
 		}
 	})
 }
@@ -178,7 +178,7 @@ func TestAuthControllerCompleteGitHubLoginRejectsInvalidState(t *testing.T) {
 		router.ServeHTTP(response, request)
 
 		if response.Code != stdhttp.StatusBadRequest {
-			t.Fatalf("status code = %d, want %d", response.Code, stdhttp.StatusBadRequest)
+			t.Fatalf("ステータスコード = %d, 期待値 %d", response.Code, stdhttp.StatusBadRequest)
 		}
 	})
 }
