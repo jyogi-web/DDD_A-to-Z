@@ -113,6 +113,9 @@ function Panel({ children, borderColor }: { children: ReactNode; borderColor?: s
         background: "rgba(0,0,0,0.35)",
         padding: "14px",
         height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "auto",
       }}
     >
       {children}
@@ -235,13 +238,15 @@ export function MyPage({ onNavigate }: MyPageProps) {
       <div
         style={{
           position: "relative", zIndex: 2,
-          flex: 1, overflowY: "auto",
-          padding: "16px 20px 24px",
+          flex: 1,
+          display: "flex", flexDirection: "column", gap: "14px",
+          padding: "16px 20px",
           maxWidth: "1280px", width: "100%", margin: "0 auto",
+          overflow: "hidden",
         }}
       >
         {/* ═══ Top Row: 3 columns ═══ */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "14px", marginBottom: "14px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "14px", flex: 1, minHeight: 0 }}>
           {/* Left: Adventurer Profile */}
           <Panel borderColor="rgba(240,192,64,0.3)">
             <SectionTitle text="冒険者プロフィール" />
@@ -303,7 +308,7 @@ export function MyPage({ onNavigate }: MyPageProps) {
                 <span style={{ position: "absolute", top: "-4px", fontSize: "1.2rem", color: "#f0c040" }}>🏅</span>
               </motion.div>
 
-              <div style={{ fontFamily: '"Press Start 2P", monospace', fontSize: "1rem", color: "#00e5ff", letterSpacing: "0.1em" }}>
+              <div style={{ fontFamily: '"Press Start 2P", monospace', fontSize: "0.9rem", color: "#00e5ff", letterSpacing: "0.1em", textAlign: "center", lineHeight: 1.4 }}>
                 {MOCK.guild.fullName}
               </div>
 
@@ -320,16 +325,20 @@ export function MyPage({ onNavigate }: MyPageProps) {
             </div>
 
             {/* Guild stats */}
-            <div style={{ display: "flex", justifyContent: "space-around", marginTop: "10px", padding: "10px 0", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: "0.7rem", color: "rgba(232,232,208,0.3)", fontFamily: '"Press Start 2P", monospace' }}>RANK</div>
-                <div style={{ fontSize: "1.8rem", color: "#f0c040", fontFamily: '"Press Start 2P", monospace' }}>#{MOCK.guild.rank}</div>
-                <div style={{ fontSize: "0.6rem", color: "rgba(232,232,208,0.3)", fontFamily: '"Press Start 2P", monospace' }}>/ {MOCK.guild.total} ギルド中</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginTop: "12px", padding: "12px 8px", borderTop: "1px solid rgba(255,255,255,0.06)", background: "rgba(0,0,0,0.2)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                <div style={{ fontSize: "0.7rem", color: "rgba(232,232,208,0.4)", fontFamily: '"Press Start 2P", monospace' }}>RANK</div>
+                <div style={{ textAlign: "right" }}>
+                  <span style={{ fontSize: "1.4rem", color: "#f0c040", fontFamily: '"Press Start 2P", monospace' }}>#{MOCK.guild.rank}</span>
+                  <span style={{ fontSize: "0.6rem", color: "rgba(232,232,208,0.3)", fontFamily: '"Press Start 2P", monospace', marginLeft: "8px" }}>/ {MOCK.guild.total} ギルド中</span>
+                </div>
               </div>
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: "0.7rem", color: "rgba(232,232,208,0.3)", fontFamily: '"Press Start 2P", monospace' }}>GUILD CP</div>
-                <div style={{ fontSize: "1.4rem", color: "#00e5ff", fontFamily: '"Press Start 2P", monospace' }}>{MOCK.guild.cp.toLocaleString()}</div>
-                <div style={{ fontSize: "0.6rem", color: "rgba(232,232,208,0.3)", fontFamily: '"Press Start 2P", monospace' }}>Contribution</div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                <div style={{ fontSize: "0.7rem", color: "rgba(232,232,208,0.4)", fontFamily: '"Press Start 2P", monospace' }}>GUILD CP</div>
+                <div style={{ textAlign: "right" }}>
+                  <span style={{ fontSize: "1.2rem", color: "#00e5ff", fontFamily: '"Press Start 2P", monospace' }}>{MOCK.guild.cp.toLocaleString()}</span>
+                  <div style={{ fontSize: "0.5rem", color: "rgba(232,232,208,0.3)", fontFamily: '"Press Start 2P", monospace', marginTop: "4px" }}>Contribution</div>
+                </div>
               </div>
             </div>
 
@@ -414,7 +423,7 @@ export function MyPage({ onNavigate }: MyPageProps) {
         </div>
 
         {/* ═══ Bottom Row: 3 columns ═══ */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "14px", marginBottom: "14px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "14px", flex: 1, minHeight: 0 }}>
           {/* Left: Language Status */}
           <Panel borderColor="rgba(191,0,255,0.3)">
             <SectionTitle text="言語ステータス" color="#bf00ff" />
