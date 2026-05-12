@@ -79,8 +79,8 @@ function generateContributions() {
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const DAYS_LABELS = ["Mon", "", "Wed", "", "Fri", "", ""];
-const CELL = 10;
-const GAP = 2;
+const CELL = 14;
+const GAP = 3;
 
 /* ─── Sub-components ─── */
 
@@ -89,7 +89,7 @@ function SectionTitle({ text, color }: { text: string; color?: string }) {
     <div
       style={{
         fontFamily: '"Press Start 2P", monospace',
-        fontSize: "0.45rem",
+        fontSize: "0.9rem",
         color: color ?? "var(--color-gold)",
         letterSpacing: "0.08em",
         padding: "4px 0",
@@ -213,16 +213,16 @@ export function MyPage({ onNavigate }: MyPageProps) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <span style={{ fontSize: "1rem" }}>👑</span>
-          <span style={{ fontSize: "0.5rem", color: "#f0c040", letterSpacing: "0.1em" }}>MY PAGE</span>
-          <span style={{ fontSize: "0.5rem", color: "rgba(240,192,64,0.3)" }}>{">"}</span>
-          <span style={{ fontSize: "0.45rem", color: "rgba(232,232,208,0.5)" }}>エンジニア・ステータス</span>
+          <span style={{ fontSize: "2rem" }}>👑</span>
+          <span style={{ fontSize: "1rem", color: "#f0c040", letterSpacing: "0.1em" }}>MY PAGE</span>
+          <span style={{ fontSize: "1rem", color: "rgba(240,192,64,0.3)" }}>{">"}</span>
+          <span style={{ fontSize: "0.9rem", color: "rgba(232,232,208,0.5)" }}>エンジニア・ステータス</span>
         </div>
         <button
           onClick={() => onNavigate("/")}
           style={{
             fontFamily: '"Press Start 2P", monospace',
-            fontSize: "0.4rem", color: "rgba(232,232,208,0.4)",
+            fontSize: "0.8rem", color: "rgba(232,232,208,0.4)",
             background: "none", border: "1px solid rgba(255,255,255,0.12)",
             padding: "6px 12px", cursor: "pointer",
           }}
@@ -247,15 +247,15 @@ export function MyPage({ onNavigate }: MyPageProps) {
             <SectionTitle text="冒険者プロフィール" />
             <div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: '"Press Start 2P", monospace', fontSize: "0.5rem", color: "#e8e8d0" }}>{MOCK.user.name}</div>
-                <div style={{ fontSize: "0.4rem", color: "rgba(232,232,208,0.4)", marginTop: "4px", fontFamily: '"Press Start 2P", monospace' }}>
+                <div style={{ fontFamily: '"Press Start 2P", monospace', fontSize: "1rem", color: "#e8e8d0" }}>{MOCK.user.name}</div>
+                <div style={{ fontSize: "0.8rem", color: "rgba(232,232,208,0.4)", marginTop: "4px", fontFamily: '"Press Start 2P", monospace' }}>
                   {MOCK.user.title}
                 </div>
                 <div style={{ marginTop: "10px", border: "1px solid rgba(240,192,64,0.15)", background: "rgba(240,192,64,0.04)", padding: "8px" }}>
-                  <div style={{ fontSize: "0.35rem", color: "rgba(232,232,208,0.3)", fontFamily: '"Press Start 2P", monospace' }}>TITLE</div>
+                  <div style={{ fontSize: "0.7rem", color: "rgba(232,232,208,0.3)", fontFamily: '"Press Start 2P", monospace' }}>TITLE</div>
                   <div style={{ display: "flex", alignItems: "center", gap: "4px", marginTop: "4px" }}>
-                    <span style={{ fontSize: "0.7rem" }}>👑</span>
-                    <span style={{ fontSize: "0.4rem", color: "#f0c040", fontFamily: '"Press Start 2P", monospace' }}>{MOCK.user.rankName}</span>
+                    <span style={{ fontSize: "1.4rem" }}>👑</span>
+                    <span style={{ fontSize: "0.8rem", color: "#f0c040", fontFamily: '"Press Start 2P", monospace' }}>{MOCK.user.rankName}</span>
                   </div>
                 </div>
               </div>
@@ -264,17 +264,17 @@ export function MyPage({ onNavigate }: MyPageProps) {
             {/* Season info */}
             <div style={{ marginTop: "12px", padding: "10px", border: "1px solid rgba(156,39,176,0.3)", background: "rgba(156,39,176,0.06)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-                <span style={{ fontSize: "0.35rem", background: "rgba(156,39,176,0.5)", color: "#e8e8d0", padding: "2px 6px", fontFamily: '"Press Start 2P", monospace' }}>
+                <span style={{ fontSize: "0.7rem", background: "rgba(156,39,176,0.5)", color: "#e8e8d0", padding: "2px 6px", fontFamily: '"Press Start 2P", monospace' }}>
                   {MOCK.season.label}
                 </span>
               </div>
-              <div style={{ fontSize: "0.35rem", color: "rgba(232,232,208,0.4)", fontFamily: '"Press Start 2P", monospace' }}>
+              <div style={{ fontSize: "0.7rem", color: "rgba(232,232,208,0.4)", fontFamily: '"Press Start 2P", monospace' }}>
                 {MOCK.season.start} 〜 {MOCK.season.end}
               </div>
               <div style={{ marginTop: "6px", display: "flex", alignItems: "baseline", gap: "6px" }}>
-                <span style={{ fontSize: "0.35rem", color: "rgba(232,232,208,0.4)", fontFamily: '"Press Start 2P", monospace' }}>あと</span>
-                <span style={{ fontSize: "1rem", color: "#f0c040", fontFamily: '"Press Start 2P", monospace' }}>{MOCK.season.remaining}</span>
-                <span style={{ fontSize: "0.35rem", color: "rgba(232,232,208,0.4)", fontFamily: '"Press Start 2P", monospace' }}>日</span>
+                <span style={{ fontSize: "0.7rem", color: "rgba(232,232,208,0.4)", fontFamily: '"Press Start 2P", monospace' }}>あと</span>
+                <span style={{ fontSize: "2rem", color: "#f0c040", fontFamily: '"Press Start 2P", monospace' }}>{MOCK.season.remaining}</span>
+                <span style={{ fontSize: "0.7rem", color: "rgba(232,232,208,0.4)", fontFamily: '"Press Start 2P", monospace' }}>日</span>
               </div>
             </div>
           </Panel>
@@ -297,24 +297,24 @@ export function MyPage({ onNavigate }: MyPageProps) {
                   position: "relative",
                 }}
               >
-                <span style={{ fontSize: "1.8rem" }}>📖</span>
-                <div style={{ fontSize: "0.3rem", color: gColor, fontFamily: '"Press Start 2P", monospace', letterSpacing: "0.2em" }}>VOL.3</div>
+                <span style={{ fontSize: "3.6rem" }}>📖</span>
+                <div style={{ fontSize: "0.6rem", color: gColor, fontFamily: '"Press Start 2P", monospace', letterSpacing: "0.2em" }}>VOL.3</div>
                 {/* Laurel decoration */}
-                <span style={{ position: "absolute", top: "-4px", fontSize: "0.6rem", color: "#f0c040" }}>🏅</span>
+                <span style={{ position: "absolute", top: "-4px", fontSize: "1.2rem", color: "#f0c040" }}>🏅</span>
               </motion.div>
 
-              <div style={{ fontFamily: '"Press Start 2P", monospace', fontSize: "0.5rem", color: "#00e5ff", letterSpacing: "0.1em" }}>
+              <div style={{ fontFamily: '"Press Start 2P", monospace', fontSize: "1rem", color: "#00e5ff", letterSpacing: "0.1em" }}>
                 {MOCK.guild.fullName}
               </div>
 
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                <span style={{ fontSize: "0.35rem", background: "rgba(156,39,176,0.5)", color: "#e8e8d0", padding: "2px 6px", fontFamily: '"Press Start 2P", monospace' }}>
+                <span style={{ fontSize: "0.7rem", background: "rgba(156,39,176,0.5)", color: "#e8e8d0", padding: "2px 6px", fontFamily: '"Press Start 2P", monospace' }}>
                   🏷 MEMBER
                 </span>
-                <span style={{ fontSize: "0.35rem", color: "rgba(232,232,208,0.3)", fontFamily: '"Press Start 2P", monospace' }}>since Season 1</span>
+                <span style={{ fontSize: "0.7rem", color: "rgba(232,232,208,0.3)", fontFamily: '"Press Start 2P", monospace' }}>since Season 1</span>
               </div>
 
-              <div style={{ fontSize: "0.35rem", color: "rgba(232,232,208,0.4)", textAlign: "center", lineHeight: 1.6, fontFamily: '"Press Start 2P", monospace' }}>
+              <div style={{ fontSize: "0.7rem", color: "rgba(232,232,208,0.4)", textAlign: "center", lineHeight: 1.6, fontFamily: '"Press Start 2P", monospace' }}>
                 {MOCK.guild.desc}
               </div>
             </div>
@@ -322,14 +322,14 @@ export function MyPage({ onNavigate }: MyPageProps) {
             {/* Guild stats */}
             <div style={{ display: "flex", justifyContent: "space-around", marginTop: "10px", padding: "10px 0", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
               <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: "0.35rem", color: "rgba(232,232,208,0.3)", fontFamily: '"Press Start 2P", monospace' }}>RANK</div>
-                <div style={{ fontSize: "0.9rem", color: "#f0c040", fontFamily: '"Press Start 2P", monospace' }}>#{MOCK.guild.rank}</div>
-                <div style={{ fontSize: "0.3rem", color: "rgba(232,232,208,0.3)", fontFamily: '"Press Start 2P", monospace' }}>/ {MOCK.guild.total} ギルド中</div>
+                <div style={{ fontSize: "0.7rem", color: "rgba(232,232,208,0.3)", fontFamily: '"Press Start 2P", monospace' }}>RANK</div>
+                <div style={{ fontSize: "1.8rem", color: "#f0c040", fontFamily: '"Press Start 2P", monospace' }}>#{MOCK.guild.rank}</div>
+                <div style={{ fontSize: "0.6rem", color: "rgba(232,232,208,0.3)", fontFamily: '"Press Start 2P", monospace' }}>/ {MOCK.guild.total} ギルド中</div>
               </div>
               <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: "0.35rem", color: "rgba(232,232,208,0.3)", fontFamily: '"Press Start 2P", monospace' }}>GUILD CP</div>
-                <div style={{ fontSize: "0.7rem", color: "#00e5ff", fontFamily: '"Press Start 2P", monospace' }}>{MOCK.guild.cp.toLocaleString()}</div>
-                <div style={{ fontSize: "0.3rem", color: "rgba(232,232,208,0.3)", fontFamily: '"Press Start 2P", monospace' }}>Contribution</div>
+                <div style={{ fontSize: "0.7rem", color: "rgba(232,232,208,0.3)", fontFamily: '"Press Start 2P", monospace' }}>GUILD CP</div>
+                <div style={{ fontSize: "1.4rem", color: "#00e5ff", fontFamily: '"Press Start 2P", monospace' }}>{MOCK.guild.cp.toLocaleString()}</div>
+                <div style={{ fontSize: "0.6rem", color: "rgba(232,232,208,0.3)", fontFamily: '"Press Start 2P", monospace' }}>Contribution</div>
               </div>
             </div>
 
@@ -337,7 +337,7 @@ export function MyPage({ onNavigate }: MyPageProps) {
               onClick={() => onNavigate("/?guild=1")}
               style={{
                 marginTop: "10px", width: "100%", padding: "10px",
-                fontFamily: '"Press Start 2P", monospace', fontSize: "0.4rem",
+                fontFamily: '"Press Start 2P", monospace', fontSize: "0.8rem",
                 color: "#00e5ff", border: `1px solid ${gColor}40`,
                 background: `${gColor}08`, cursor: "pointer",
               }}
@@ -351,9 +351,9 @@ export function MyPage({ onNavigate }: MyPageProps) {
             <SectionTitle text="GITHUB GRASS" color="#4caf50" />
             <div>
               {/* Month labels */}
-              <div style={{ display: "flex", marginLeft: "26px", marginBottom: "2px", height: "10px", position: "relative" }}>
+              <div style={{ display: "flex", marginLeft: "42px", marginBottom: "4px", height: "16px", position: "relative" }}>
                 {monthLabels.map((m, i) => (
-                  <div key={i} style={{ position: "absolute", left: `${m.week * (CELL + GAP)}px`, fontSize: "0.35rem", color: "rgba(232,232,208,0.25)", fontFamily: '"Press Start 2P", monospace' }}>
+                  <div key={i} style={{ position: "absolute", left: `${m.week * (CELL + GAP)}px`, fontSize: "0.7rem", color: "rgba(232,232,208,0.25)", fontFamily: '"Press Start 2P", monospace' }}>
                     {m.label}
                   </div>
                 ))}
@@ -361,7 +361,7 @@ export function MyPage({ onNavigate }: MyPageProps) {
               <div style={{ display: "flex", gap: `${GAP}px` }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: `${GAP}px`, paddingTop: "2px" }}>
                   {DAYS_LABELS.map((d, i) => (
-                    <div key={i} style={{ height: `${CELL}px`, display: "flex", alignItems: "center", fontSize: "0.35rem", color: "rgba(232,232,208,0.2)", fontFamily: '"Press Start 2P", monospace' }}>
+                    <div key={i} style={{ height: `${CELL}px`, display: "flex", alignItems: "center", fontSize: "0.7rem", color: "rgba(232,232,208,0.2)", fontFamily: '"Press Start 2P", monospace' }}>
                       {d}
                     </div>
                   ))}
@@ -393,20 +393,20 @@ export function MyPage({ onNavigate }: MyPageProps) {
               {/* Legend + Streak */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "8px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                  <span style={{ fontSize: "0.35rem", color: "rgba(232,232,208,0.25)", fontFamily: '"Press Start 2P", monospace' }}>Less</span>
+                  <span style={{ fontSize: "0.7rem", color: "rgba(232,232,208,0.25)", fontFamily: '"Press Start 2P", monospace' }}>Less</span>
                   {[0, 1, 2, 3, 4].map((v) => (
                     <div key={v} style={{ width: "8px", height: "8px", background: v === 0 ? "rgba(255,255,255,0.03)" : `rgba(76,175,80,${0.08 + v * 0.12})`, border: "1px solid rgba(255,255,255,0.04)" }} />
                   ))}
-                  <span style={{ fontSize: "0.35rem", color: "rgba(232,232,208,0.25)", fontFamily: '"Press Start 2P", monospace' }}>More</span>
+                  <span style={{ fontSize: "0.7rem", color: "rgba(232,232,208,0.25)", fontFamily: '"Press Start 2P", monospace' }}>More</span>
                 </div>
-                <div style={{ fontSize: "0.35rem", color: "#f0c040", fontFamily: '"Press Start 2P", monospace' }}>
+                <div style={{ fontSize: "0.7rem", color: "#f0c040", fontFamily: '"Press Start 2P", monospace' }}>
                   最長連続記録: <span style={{ color: "#4caf50" }}>{streak}</span> 日
                 </div>
               </div>
             </div>
             {/* Tooltip */}
             {tooltip && (
-              <div style={{ position: "fixed", left: tooltip.x + 10, top: tooltip.y - 28, background: "rgba(0,0,0,0.92)", border: "1px solid #f0c040", padding: "4px 8px", fontSize: "0.4rem", color: "#e8e8d0", pointerEvents: "none", zIndex: 100, fontFamily: '"Press Start 2P", monospace' }}>
+              <div style={{ position: "fixed", left: tooltip.x + 10, top: tooltip.y - 28, background: "rgba(0,0,0,0.92)", border: "1px solid #f0c040", padding: "4px 8px", fontSize: "0.8rem", color: "#e8e8d0", pointerEvents: "none", zIndex: 100, fontFamily: '"Press Start 2P", monospace' }}>
                 {tooltip.date}: {tooltip.count} commits
               </div>
             )}
@@ -428,15 +428,15 @@ export function MyPage({ onNavigate }: MyPageProps) {
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "3px" }}>
                     <span>{lang.icon}</span>
-                    <span style={{ fontSize: "0.4rem", color: lang.color, minWidth: "72px", fontFamily: '"Press Start 2P", monospace' }}>{lang.name}</span>
+                    <span style={{ fontSize: "0.8rem", color: lang.color, minWidth: "72px", fontFamily: '"Press Start 2P", monospace' }}>{lang.name}</span>
                     <div style={{ flex: 1, height: "8px", border: "1px solid rgba(255,255,255,0.06)", background: "rgba(0,0,0,0.4)", position: "relative", overflow: "hidden" }}>
                       <ProgressBarFill pct={lang.pct} color={lang.color} delay={0.4 + i * 0.08} />
                     </div>
-                    <span style={{ fontSize: "0.35rem", color: lang.color, minWidth: "28px", textAlign: "right", fontFamily: '"Press Start 2P", monospace' }}>{lang.pct}%</span>
+                    <span style={{ fontSize: "0.7rem", color: lang.color, minWidth: "28px", textAlign: "right", fontFamily: '"Press Start 2P", monospace' }}>{lang.pct}%</span>
                   </div>
                   <div style={{ display: "flex", gap: "6px", marginLeft: "22px", flexWrap: "wrap" }}>
                     {(["atk", "def", "mag", "spd", "luk"] as const).map((s) => (
-                      <span key={s} style={{ fontSize: "0.3rem", color: "rgba(232,232,208,0.2)", fontFamily: '"Press Start 2P", monospace' }}>
+                      <span key={s} style={{ fontSize: "0.6rem", color: "rgba(232,232,208,0.2)", fontFamily: '"Press Start 2P", monospace' }}>
                         {s.toUpperCase()} {lang[s]}
                       </span>
                     ))}
@@ -450,24 +450,24 @@ export function MyPage({ onNavigate }: MyPageProps) {
           <Panel borderColor="rgba(240,192,64,0.3)">
             <SectionTitle text="目標" />
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-              <span style={{ fontSize: "1rem" }}>🏁</span>
-              <span style={{ fontSize: "0.4rem", color: "rgba(232,232,208,0.6)", fontFamily: '"Press Start 2P", monospace' }}>
+              <span style={{ fontSize: "2rem" }}>🏁</span>
+              <span style={{ fontSize: "0.8rem", color: "rgba(232,232,208,0.6)", fontFamily: '"Press Start 2P", monospace' }}>
                 年内 {MOCK.goal.target.toLocaleString()} GitHub コミット
               </span>
             </div>
             <div style={{ height: "16px", border: "2px solid rgba(255,255,255,0.1)", background: "rgba(0,0,0,0.4)", position: "relative", overflow: "hidden", marginBottom: "6px" }}>
               <ProgressBarFill pct={(MOCK.goal.current / MOCK.goal.target) * 100} color="#4caf50" delay={0.4} />
             </div>
-            <div style={{ fontSize: "0.4rem", color: "#4caf50", textAlign: "right", fontFamily: '"Press Start 2P", monospace' }}>
+            <div style={{ fontSize: "0.8rem", color: "#4caf50", textAlign: "right", fontFamily: '"Press Start 2P", monospace' }}>
               {MOCK.goal.current.toLocaleString()} / {MOCK.goal.target.toLocaleString()}
             </div>
 
             <div style={{ marginTop: "16px", paddingTop: "12px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
               <SectionTitle text="称号" />
               <div style={{ textAlign: "center", padding: "8px" }}>
-                <span style={{ fontSize: "1.2rem" }}>👑</span>
-                <div style={{ fontSize: "0.45rem", color: "#f0c040", marginTop: "4px", fontFamily: '"Press Start 2P", monospace' }}>{MOCK.title.name}</div>
-                <div style={{ fontSize: "0.35rem", color: "rgba(232,232,208,0.35)", marginTop: "6px", lineHeight: 1.6, fontFamily: '"Press Start 2P", monospace' }}>
+                <span style={{ fontSize: "2.4rem" }}>👑</span>
+                <div style={{ fontSize: "0.9rem", color: "#f0c040", marginTop: "4px", fontFamily: '"Press Start 2P", monospace' }}>{MOCK.title.name}</div>
+                <div style={{ fontSize: "0.7rem", color: "rgba(232,232,208,0.35)", marginTop: "6px", lineHeight: 1.6, fontFamily: '"Press Start 2P", monospace' }}>
                   "{MOCK.title.line}"
                 </div>
               </div>
@@ -495,8 +495,8 @@ export function MyPage({ onNavigate }: MyPageProps) {
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <span style={{ fontSize: "0.35rem", color: "rgba(232,232,208,0.3)", fontFamily: '"Press Start 2P", monospace' }}>{label}</span>
-      <span style={{ fontSize: "0.45rem", color: "#00e5ff", fontFamily: '"Press Start 2P", monospace' }}>{value}</span>
+      <span style={{ fontSize: "0.7rem", color: "rgba(232,232,208,0.3)", fontFamily: '"Press Start 2P", monospace' }}>{label}</span>
+      <span style={{ fontSize: "0.9rem", color: "#00e5ff", fontFamily: '"Press Start 2P", monospace' }}>{value}</span>
     </div>
   );
 }
