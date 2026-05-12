@@ -3,6 +3,7 @@ import { motion, type Variants } from "framer-motion";
 import { ParticleBackground } from "./components/ParticleBackground";
 import { TitleLogo } from "./components/TitleLogo";
 import { GitHubLoginButton } from "./components/GitHubLoginButton";
+import { InitialProfile } from "./components/InitialProfile";
 
 // ギルド一覧（チラ見せ用）
 const GUILDS = [
@@ -35,6 +36,9 @@ function isDaytime(hour: number): boolean {
 
 function App() {
   const [isDay, setIsDay] = useState(() => isDaytime(new Date().getHours()));
+  const [isProfileMode, setIsProfileMode] = useState(() =>
+    window.location.search.includes("profile=1"),
+  );
 
   // 毎分チェックして日没・夜明けをリアルタイム反映
   useEffect(() => {
@@ -47,6 +51,19 @@ function App() {
     // TODO: GitHub OAuth 連携実装後にここでリダイレクト
     window.location.href = "/api/auth/github";
   }, []);
+
+  if (isProfileMode) {
+    return (
+      <InitialProfile
+        onComplete={(username) => {
+          console.log("Profile created:", username);
+          alert(`Welcome to the Lang War, ${username}!\n(Mock routing to next phase...)`);
+          // モック用：プロフ完了後にトップに戻るか次へ進む
+          window.location.href = "/";
+        }}
+      />
+    );
+  }
 
   const bgImage = isDay ? "url('/pixel-town-day.png')" : "url('/pixel-town-night.png')";
   const overlay = isDay
@@ -242,6 +259,25 @@ function App() {
         >
           ※ ギルドの選択は後で変更できます。まずはGitHubでログインしてください。
         </motion.p>
+
+        {import.meta.env.DEV && (
+          <motion.div variants={itemVariants} style={{ marginTop: "2rem" }}>
+            <button
+              onClick={() => setIsProfileMode(true)}
+              style={{
+                padding: "8px 16px",
+                fontFamily: '"DotGothic16", monospace',
+                fontSize: "0.8rem",
+                background: "transparent",
+                border: "1px solid #ffffff40",
+                color: "#ffffff80",
+                cursor: "pointer",
+              }}
+            >
+              [DEV] ユーザー登録画面モックを開く
+            </button>
+          </motion.div>
+        )}
       </motion.main>
     </div>
   );
