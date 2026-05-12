@@ -62,8 +62,6 @@ const MOCK = {
   ],
 };
 
-const RECENT_LOGS = MOCK.todayLog;
-
 function generateContributions() {
   const weeks = 52;
   const days = 7;
@@ -147,7 +145,6 @@ function ProgressBarFill({ pct, color, delay = 0.3 }: { pct: number; color: stri
 export function MyPage({ onNavigate }: MyPageProps) {
   const contribs = useMemo(() => generateContributions(), []);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; date: string; count: number } | null>(null);
-  const [msgIndex] = useState(() => Math.floor(Math.random() * MOCK.messages.length));
 
   const streak = useMemo(() => {
     let max = 0, cur = 0;
@@ -490,106 +487,6 @@ export function MyPage({ onNavigate }: MyPageProps) {
           </Panel>
         </div>
 
-        {/* ═══ Achievements (full width) ═══ */}
-        <div style={{ marginBottom: "14px" }}>
-          <SectionTitle text="実績メダル" />
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: "10px", marginTop: "10px" }}>
-            {MOCK.badges.map((badge, i) => {
-              const unlocked = i < 5;
-              return (
-                <motion.div
-                  key={badge.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 + i * 0.05, duration: 0.3, ease: steppedEase(4) }}
-                  whileHover={{ scale: 1.08 }}
-                  title={badge.desc}
-                  style={{
-                    display: "flex", flexDirection: "column", alignItems: "center", gap: "6px",
-                    padding: "14px 6px",
-                    border: `2px solid ${unlocked ? badge.color : "rgba(255,255,255,0.06)"}`,
-                    background: unlocked ? `${badge.color}10` : "rgba(0,0,0,0.3)",
-                    filter: unlocked ? "none" : "grayscale(0.8)",
-                    cursor: "pointer", position: "relative",
-                    borderRadius: "50%",
-                  }}
-                >
-                  {unlocked && (
-                    <motion.div
-                      animate={{ opacity: [0.3, 0.8, 0.3] }}
-                      transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                      style={{ position: "absolute", inset: -2, border: `2px solid ${badge.color}`, borderRadius: "50%", pointerEvents: "none" }}
-                    />
-                  )}
-                  <div style={{ position: "relative" }}>
-                    <span style={{ fontSize: "1.4rem" }}>{badge.icon}</span>
-                    {badge.star && (
-                      <span style={{ position: "absolute", top: "-6px", right: "-10px", fontSize: "0.4rem", color: "#f0c040", fontFamily: '"Press Start 2P", monospace' }}>
-                        ★{badge.star}
-                      </span>
-                    )}
-                  </div>
-                  <span style={{ fontSize: "0.35rem", color: unlocked ? "rgba(232,232,208,0.7)" : "rgba(232,232,208,0.2)", textAlign: "center", fontFamily: '"Press Start 2P", monospace' }}>
-                    {badge.name}
-                  </span>
-                </motion.div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* ═══ Footer: 2 columns ═══ */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
-          {/* Left: Wise man */}
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8, duration: 0.4, ease: steppedEase(6) }}
-            style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "10px", border: "2px solid rgba(240,192,64,0.15)", background: "rgba(0,0,0,0.3)" }}
-          >
-            <div style={{ width: "52px", height: "52px", border: "2px solid rgba(240,192,64,0.3)", background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.8rem", flexShrink: 0, position: "relative" }}>
-              🧙
-              <motion.div
-                animate={{ opacity: [0.2, 0.6, 0.2] }}
-                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                style={{ position: "absolute", inset: -1, border: "1px solid rgba(240,192,64,0.3)", pointerEvents: "none" }}
-              />
-            </div>
-            <div style={{ flex: 1 }}>
-              {MOCK.messages[msgIndex].split("\n").map((line, i) => (
-                <div key={i} style={{ fontSize: "0.35rem", color: "rgba(232,232,208,0.6)", lineHeight: 1.8, fontFamily: '"Press Start 2P", monospace' }}>
-                  * {line}
-                </div>
-              ))}
-              <div style={{ marginTop: "8px", fontSize: "0.4rem", color: "rgba(232,232,208,0.2)", fontFamily: '"Press Start 2P", monospace' }}>
-                ▼ SCROLL
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Right: Today Log */}
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.9, duration: 0.4, ease: steppedEase(6) }}
-            style={{ border: "2px solid rgba(0,229,255,0.15)", background: "rgba(0,0,0,0.3)", padding: "12px" }}
-          >
-            <SectionTitle text="TODAY LOG" color="#00e5ff" />
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              {RECENT_LOGS.map((log, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, x: -6 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 1 + i * 0.06, duration: 0.3 }}
-                  style={{ fontSize: "0.35rem", color: "rgba(232,232,208,0.4)", fontFamily: '"Press Start 2P", monospace' }}
-                >
-                  ▸ {log}
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        </div>
       </div>
     </div>
   );
