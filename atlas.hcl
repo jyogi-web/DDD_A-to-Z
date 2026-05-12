@@ -1,0 +1,32 @@
+env "local" {
+  url = getenv("DATABASE_URL")
+  src = "file://db/schema.sql"
+  dev = "docker://postgres/17/dev?search_path=public"
+
+  migration {
+    dir = "file://db/migrations"
+  }
+
+  schema {
+    src = "file://db/schema.sql"
+  }
+}
+
+env "ci" {
+  src = "file://db/schema.sql"
+  dev = "docker://postgres/17/dev?search_path=public"
+
+  migration {
+    dir = "file://db/migrations"
+  }
+
+  schema {
+    src = "file://db/schema.sql"
+  }
+
+  lint {
+    git {
+      base = "main"
+    }
+  }
+}

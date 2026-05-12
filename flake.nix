@@ -16,6 +16,9 @@
       {
         devShells.default = pkgs.mkShell {
           packages = [
+            pkgs.atlas
+            pkgs.docker
+            pkgs.docker-compose
             pkgs.git
             pkgs.golangci-lint
             pkgs.nodejs_24

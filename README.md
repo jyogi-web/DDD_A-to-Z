@@ -44,6 +44,7 @@ pnpm prepare
 ```bash
 cp .env.example .env
 pnpm db:up
+pnpm db:migrate:apply
 ```
 
 デフォルトの接続情報は以下です。
@@ -53,8 +54,21 @@ pnpm db:up
 - Password: `lang_war_password`
 - Port: `5432`
 - DATABASE_URL: `postgres://lang_war:lang_war_password@localhost:5432/lang_war?sslmode=disable`
+- AUTH_COOKIE_SECRET: OAuth state cookie の署名 secret
+- AUTH_COOKIE_SECURE: 本番 HTTPS では `true`
 
-アプリケーションからは `.env` の `DATABASE_URL` を使って接続します。別コンテナから接続する場合は host を `postgres` にしてください。
+アプリケーションからは `.env` の `DATABASE_URL` を使って接続します。別コンテナから接続する場合は host を `postgres` にしてください。GitHub OAuth の state は署名付き cookie、User と session は PostgreSQL に保存します。
+
+DB schema は Atlas で管理します。schema の source of truth は `db/schema.sql`、生成された migration は `db/migrations/` に置きます。
+
+```bash
+pnpm db:schema:validate
+pnpm db:migrate:diff <name>
+pnpm db:migrate:validate
+pnpm db:migrate:lint
+pnpm db:migrate:dry-run
+pnpm db:migrate:apply
+```
 
 起動確認:
 
@@ -79,6 +93,7 @@ pnpm db:up
 pnpm db:down
 pnpm db:status
 pnpm db:reset
+pnpm db:migrate:apply
 pnpm lint
 pnpm test
 pnpm build
@@ -114,4 +129,5 @@ docs/           企画・技術・アーキテクチャ資料
 - [ゲーム企画書](docs/ProductOverview.md)
 - [技術設計書](docs/Tech.md)
 - [アーキテクチャ設計書](docs/Architecture.md)
+- [バックエンドファイル構成](docs/BackendStructure.md)
 - [Turbo 運用ガイド](docs/Turbo.md)
