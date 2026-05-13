@@ -2,10 +2,12 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
 
+	cpapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/cp"
 	cpdomain "github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/cp"
 	"github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/user"
 	"gorm.io/gorm"
@@ -95,10 +97,13 @@ func TestCPStoreRecord(t *testing.T) {
 			t.Fatalf("NewLedgerEntry() がエラーを返しました: %v", err)
 		}
 
-		expectPostgresStatementError(t, tx, func() error {
+		err = storeExpectPostgresStatementError(t, tx, func() error {
 			_, err := store.Record(ctx, spent)
 			return err
 		})
+		if !errors.Is(err, cpapp.ErrInsufficientBalance) {
+			t.Fatalf("Record() error = %v, 期待値 ErrInsufficientBalance", err)
+		}
 
 		var balance int64
 		if err := tx.WithContext(ctx).Raw("SELECT balance FROM cp_accounts WHERE user_id = ?", appUser.ID).Scan(&balance).Error; err != nil {
@@ -215,6 +220,41 @@ func TestCPStoreRecord(t *testing.T) {
 	})
 }
 
+func TestCPStoreGetBalance(t *testing.T) {
+	t.Run("cp_accounts から現在残高を取得する", func(t *testing.T) {
+		ctx := context.Background()
+		tx := beginPostgresTestTransaction(t, ctx)
+		store := NewCPStore(tx)
+
+		appUser := createPostgresTestUserWithCPAccount(t, ctx, tx)
+		now := time.Date(2026, 5, 13, 13, 0, 0, 0, time.UTC)
+		earned, err := cpdomain.NewLedgerEntry(
+			"cp_ledger_balance_"+string(appUser.ID),
+			appUser.ID,
+			70,
+			cpdomain.EntryTypeEarn,
+			"balance test",
+			"test",
+			"balance_"+string(appUser.ID),
+			now,
+		)
+		if err != nil {
+			t.Fatalf("NewLedgerEntry() がエラーを返しました: %v", err)
+		}
+		if _, err := store.Record(ctx, earned); err != nil {
+			t.Fatalf("Record() がエラーを返しました: %v", err)
+		}
+
+		balance, err := store.GetBalance(ctx, appUser.ID)
+		if err != nil {
+			t.Fatalf("GetBalance() がエラーを返しました: %v", err)
+		}
+		if balance != 70 {
+			t.Fatalf("balance = %d, 期待値 70", balance)
+		}
+	})
+}
+
 func createPostgresTestUserWithCPAccount(t *testing.T, ctx context.Context, tx *gorm.DB) user.User {
 	t.Helper()
 
@@ -264,6 +304,12 @@ func createPostgresTestUser(t *testing.T, ctx context.Context, tx *gorm.DB) user
 func expectPostgresStatementError(t *testing.T, tx *gorm.DB, run func() error) {
 	t.Helper()
 
+	_ = storeExpectPostgresStatementError(t, tx, run)
+}
+
+func storeExpectPostgresStatementError(t *testing.T, tx *gorm.DB, run func() error) error {
+	t.Helper()
+
 	if err := tx.Exec("SAVEPOINT expected_error").Error; err != nil {
 		t.Fatalf("SAVEPOINT 作成でエラーが発生しました: %v", err)
 	}
@@ -282,4 +328,6 @@ func expectPostgresStatementError(t *testing.T, tx *gorm.DB, run func() error) {
 	if releaseErr := tx.Exec("RELEASE SAVEPOINT expected_error").Error; releaseErr != nil {
 		t.Fatalf("RELEASE SAVEPOINT でエラーが発生しました: %v", releaseErr)
 	}
+
+	return err
 }
