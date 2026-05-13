@@ -61,6 +61,8 @@ func TestAuthControllerBeginGitHubLogin(t *testing.T) {
 		}
 		if cookie := findCookie(response.Result().Cookies(), oauthStateCookieName); cookie == nil {
 			t.Fatal("OAuth state Cookie が設定されている必要があります")
+		} else if cookie.Path != "/api/auth/github" {
+			t.Fatalf("OAuth state Cookie Path = %q, 期待値 /api/auth/github", cookie.Path)
 		}
 	})
 }
@@ -80,8 +82,11 @@ func TestAuthControllerCompleteGitHubLogin(t *testing.T) {
 		request.AddCookie(findCookie(loginResponse.Result().Cookies(), oauthStateCookieName))
 		router.ServeHTTP(response, request)
 
-		if response.Code != stdhttp.StatusOK {
-			t.Fatalf("ステータスコード = %d, 期待値 %d", response.Code, stdhttp.StatusOK)
+		if response.Code != stdhttp.StatusFound {
+			t.Fatalf("ステータスコード = %d, 期待値 %d", response.Code, stdhttp.StatusFound)
+		}
+		if got := response.Header().Get("Location"); got != "https://app.test" {
+			t.Fatalf("Location = %q, 期待値 https://app.test", got)
 		}
 
 		cookie := findCookie(response.Result().Cookies(), sessionCookieName)
@@ -98,29 +103,15 @@ func TestAuthControllerCompleteGitHubLogin(t *testing.T) {
 			t.Fatalf("SameSite = %v, 期待値 Lax", cookie.SameSite)
 		}
 
-		var body struct {
-			User struct {
-				ID        string `json:"id"`
-				GitHubID  int64  `json:"github_id"`
-				Username  string `json:"username"`
-				AvatarURL string `json:"avatar_url"`
-			} `json:"user"`
+		stateCookie := findCookie(response.Result().Cookies(), oauthStateCookieName)
+		if stateCookie == nil {
+			t.Fatal("OAuth state Cookie を削除する Set-Cookie が必要です")
 		}
-		if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
-			t.Fatalf("レスポンスボディのデコードに失敗しました: %v", err)
+		if stateCookie.Path != "/api/auth/github" {
+			t.Fatalf("OAuth state Cookie 削除 Path = %q, 期待値 /api/auth/github", stateCookie.Path)
 		}
-
-		if body.User.ID == "" {
-			t.Fatal("レスポンスのユーザーIDが設定されている必要があります")
-		}
-		if body.User.GitHubID != 123 {
-			t.Fatalf("github_id = %d, 期待値 123", body.User.GitHubID)
-		}
-		if body.User.Username != "octocat" {
-			t.Fatalf("username = %q, 期待値 octocat", body.User.Username)
-		}
-		if body.User.AvatarURL != "https://example.com/avatar.png" {
-			t.Fatalf("avatar_url = %q, 期待値 テスト用アバターURL", body.User.AvatarURL)
+		if stateCookie.MaxAge != -1 {
+			t.Fatalf("OAuth state Cookie MaxAge = %d, 期待値 -1", stateCookie.MaxAge)
 		}
 	})
 }
@@ -206,6 +197,7 @@ func newTestAuthController(tokens *fakeTokenGenerator) *AuthController {
 		slog.New(slog.NewTextHandler(io.Discard, nil)),
 		security.NewSignedValueCodec("test-secret"),
 		false,
+		"https://app.test",
 	)
 }
 

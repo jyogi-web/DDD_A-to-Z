@@ -13,6 +13,7 @@ import (
 
 const (
 	oauthStateCookieName = "lang_war_oauth_state"
+	oauthStateCookiePath = "/api/auth/github"
 	sessionCookieName    = "lang_war_session"
 )
 
@@ -26,15 +27,23 @@ type AuthController struct {
 	logger       *slog.Logger
 	stateCodec   StateCodec
 	cookieSecure bool
+	frontendURL  string
 	now          func() time.Time
 }
 
-func NewAuthController(usecase *authapp.UseCase, logger *slog.Logger, stateCodec StateCodec, cookieSecure bool) *AuthController {
+func NewAuthController(
+	usecase *authapp.UseCase,
+	logger *slog.Logger,
+	stateCodec StateCodec,
+	cookieSecure bool,
+	frontendURL string,
+) *AuthController {
 	return &AuthController{
 		usecase:      usecase,
 		logger:       logger,
 		stateCodec:   stateCodec,
 		cookieSecure: cookieSecure,
+		frontendURL:  frontendURL,
 		now:          time.Now,
 	}
 }
@@ -63,7 +72,7 @@ func (c *AuthController) beginGitHubLogin(w http.ResponseWriter, r *http.Request
 	http.SetCookie(w, &http.Cookie{
 		Name:     oauthStateCookieName,
 		Value:    signedState,
-		Path:     "/auth/github",
+		Path:     oauthStateCookiePath,
 		Expires:  start.StateExpiresAt,
 		HttpOnly: true,
 		Secure:   c.cookieSecure,
@@ -98,9 +107,7 @@ func (c *AuthController) completeGitHubLogin(w http.ResponseWriter, r *http.Requ
 		SameSite: http.SameSiteLaxMode,
 	})
 
-	if err := writeJSON(w, http.StatusOK, userResponse(result.User)); err != nil {
-		c.logger.Error("failed to write github login response", "error", err)
-	}
+	http.Redirect(w, r, c.frontendURL, http.StatusFound)
 }
 
 func (c *AuthController) currentUser(w http.ResponseWriter, r *http.Request) {
@@ -160,7 +167,7 @@ func (c *AuthController) clearOAuthStateCookie(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     oauthStateCookieName,
 		Value:    "",
-		Path:     "/auth/github",
+		Path:     oauthStateCookiePath,
 		MaxAge:   -1,
 		HttpOnly: true,
 		Secure:   c.cookieSecure,
