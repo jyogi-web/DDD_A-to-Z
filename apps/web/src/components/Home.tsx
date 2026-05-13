@@ -14,9 +14,9 @@ const player = {
 };
 
 const navItems = [
-  { label: "WAR MAP", caption: "BATTLE FRONT", path: "/?war=1", accent: "#ff5f56" },
-  { label: "GUILD BASE", caption: "COMMUNITY HQ", path: "/?guild=1", accent: "#00f5ff" },
-  { label: "MY STATUS", caption: "PLAYER DATA", path: "/?mypage=1", accent: "#ffd700" },
+  { label: "WAR MAP", caption: "BATTLE FRONT", path: "/war", accent: "#ff5f56" },
+  { label: "GUILD BASE", caption: "COMMUNITY HQ", path: "/guild", accent: "#00f5ff" },
+  { label: "MY STATUS", caption: "PLAYER DATA", path: "/mypage", accent: "#ffd700" },
 ];
 
 const steppedEase = (steps: number) => (t: number) => Math.floor(t * steps) / steps;
