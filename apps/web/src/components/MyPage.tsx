@@ -663,7 +663,7 @@ export function MyPage({ onNavigate }: MyPageProps) {
             </div>
 
             <button
-              onClick={() => onNavigate("/?guild=1")}
+              onClick={() => onNavigate("/guild")}
               style={{
                 marginTop: "10px",
                 width: "100%",

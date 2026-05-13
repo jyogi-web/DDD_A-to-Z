@@ -1,12 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, type Variants } from "framer-motion";
+import { useNavigate } from "react-router";
 import { ParticleBackground } from "./components/ParticleBackground";
 import { TitleLogo } from "./components/TitleLogo";
 import { GitHubLoginButton } from "./components/GitHubLoginButton";
-import { InitialProfile } from "./components/InitialProfile";
-import { ContributionAnalysis } from "./components/ContributionAnalysis";
-import { MyPage } from "./components/MyPage";
-import { Home } from "./components/Home";
 
 // ギルド一覧（チラ見せ用）
 const GUILDS = [
@@ -38,14 +35,8 @@ function isDaytime(hour: number): boolean {
 }
 
 function App() {
+  const navigate = useNavigate();
   const [isDay, setIsDay] = useState(() => isDaytime(new Date().getHours()));
-  const [isProfileMode, setIsProfileMode] = useState(
-    () => new URLSearchParams(window.location.search).get("profile") === "1",
-  );
-  const isAnalysisMode = new URLSearchParams(window.location.search).get("analysis") === "1";
-  const isMyPageMode = new URLSearchParams(window.location.search).get("mypage") === "1";
-  const isHomeMode = new URLSearchParams(window.location.search).get("home") === "1";
-  const isGuildMode = new URLSearchParams(window.location.search).get("guild") === "1";
 
   // 毎分チェックして日没・夜明けをリアルタイム反映
   useEffect(() => {
@@ -58,52 +49,6 @@ function App() {
     // TODO: GitHub OAuth 連携実装後にここでリダイレクト
     window.location.href = "/api/auth/github";
   }, []);
-
-  if (isProfileMode) {
-    return (
-      <InitialProfile
-        onComplete={() => {
-          window.location.href = "/?analysis=1";
-        }}
-      />
-    );
-  }
-
-  if (isAnalysisMode) {
-    return (
-      <ContributionAnalysis
-        onComplete={() => {
-          window.location.href = "/?mypage=1";
-        }}
-      />
-    );
-  }
-
-  if (isMyPageMode) {
-    return (
-      <MyPage
-        onNavigate={(path) => {
-          window.location.href = path;
-        }}
-      />
-    );
-  }
-
-  if (isHomeMode) {
-    return (
-      <Home
-        onNavigate={(path) => {
-          window.location.href = path;
-        }}
-      />
-    );
-  }
-
-  if (isGuildMode) {
-    // TODO: Guild Dashboard implementation
-    window.location.href = "/?mypage=1";
-    return null;
-  }
 
   const bgImage = isDay ? "url('/pixel-town-day.png')" : "url('/pixel-town-night.png')";
   const overlay = isDay
@@ -306,7 +251,7 @@ function App() {
             style={{ marginTop: "2rem", display: "flex", gap: "8px", justifyContent: "center" }}
           >
             <button
-              onClick={() => setIsProfileMode(true)}
+              onClick={() => navigate("/profile")}
               style={{
                 padding: "8px 16px",
                 fontFamily: '"DotGothic16", monospace',
@@ -321,7 +266,7 @@ function App() {
             </button>
             <button
               onClick={() => {
-                window.location.href = "/?analysis=1";
+                navigate("/analysis");
               }}
               style={{
                 padding: "8px 16px",
@@ -337,7 +282,7 @@ function App() {
             </button>
             <button
               onClick={() => {
-                window.location.href = "/?mypage=1";
+                navigate("/mypage");
               }}
               style={{
                 padding: "8px 16px",
