@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { ParticleBackground } from "./ParticleBackground";
-import { RustSamurai } from "./RustSamurai";
+import { GopherSprite } from "./GopherSprite";
 
 interface InitialProfileProps {
   onComplete: (username: string) => void;
@@ -261,7 +261,7 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
               transform: "translateX(0px)",
             }}
           >
-            <RustSamurai />
+            <GopherSprite />
           </motion.div>
           {/* 影 */}
           <motion.div
