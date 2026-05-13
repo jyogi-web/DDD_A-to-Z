@@ -18,6 +18,8 @@ export function AppRoutes() {
       if (user) {
         markInitialProfileCompleted(user.id);
       }
+    } catch (error) {
+      console.error("failed to complete initial profile", error);
     } finally {
       navigate("/analysis");
     }

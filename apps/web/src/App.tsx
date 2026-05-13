@@ -63,10 +63,15 @@ function App() {
 
   const handleLogin = beginLogin;
   const confirmLogout = async () => {
-    await logout();
-    setCurrentUser(null);
-    setIsInitialProfileCompleted(false);
-    setIsLogoutDialogOpen(false);
+    try {
+      await logout();
+    } catch (error) {
+      console.error("failed to logout", error);
+    } finally {
+      setCurrentUser(null);
+      setIsInitialProfileCompleted(false);
+      setIsLogoutDialogOpen(false);
+    }
   };
   const handleStart = () => {
     navigate(isInitialProfileCompleted ? "/home" : "/profile");

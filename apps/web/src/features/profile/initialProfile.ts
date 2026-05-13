@@ -21,5 +21,9 @@ export function hasCompletedInitialProfile(userID: string): boolean {
 export function markInitialProfileCompleted(userID: string): void {
   const completedUserIDs = new Set(readCompletedUserIDs());
   completedUserIDs.add(userID);
-  window.localStorage.setItem(completedProfileUserIDsKey, JSON.stringify([...completedUserIDs]));
+  try {
+    window.localStorage.setItem(completedProfileUserIDsKey, JSON.stringify([...completedUserIDs]));
+  } catch {
+    // Ignore storage failures so profile completion can continue.
+  }
 }
