@@ -3,6 +3,7 @@ module github.com/jyogi-web/ddd-a-to-z/services/api
 go 1.26.2
 
 require (
+	github.com/joho/godotenv v1.5.1
 	golang.org/x/oauth2 v0.36.0
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.31.1

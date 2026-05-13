@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-const defaultGitHubRedirectURL = "http://localhost:8080/auth/github/callback"
+const defaultGitHubRedirectURL = "http://localhost:5173/api/auth/github/callback"
 
 type GitHubOAuth struct {
 	ClientID     string
@@ -19,8 +19,8 @@ func GitHubOAuthFromEnv() (GitHubOAuth, error) {
 		ClientSecret: os.Getenv("GITHUB_CLIENT_SECRET"),
 		RedirectURL:  os.Getenv("GITHUB_REDIRECT_URL"),
 	}
-	if config.ClientID == "" || config.ClientSecret == "" || config.RedirectURL == "" || config.RedirectURL == defaultGitHubRedirectURL {
-		return GitHubOAuth{}, fmt.Errorf("GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, and non-localhost GITHUB_REDIRECT_URL must be set")
+	if config.ClientID == "" || config.ClientSecret == "" || config.RedirectURL == "" {
+		return GitHubOAuth{}, fmt.Errorf("GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, and GITHUB_REDIRECT_URL must be set")
 	}
 
 	return config, nil
