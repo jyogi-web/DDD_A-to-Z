@@ -3,4 +3,5 @@
 export const SPRITE_ASSETS = {
   // 暫定対応: 全言語共通でRustの侍をサンプルとして表示
   RUST_SAMURAI: "/character/rust_samurai_sheet.png",
+  GOPHER: "/character/gopher.webp",
 } as const;
