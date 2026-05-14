@@ -1,4 +1,5 @@
-import { motion } from "framer-motion";
+import { motion, useMotionValue } from "framer-motion";
+import { useEffect, useState } from "react";
 import { steppedEase } from "../lib/animationUtils";
 
 interface GuildTownProps {
@@ -21,145 +22,180 @@ export function GuildTown({
   bonfireSrc = "/town/bonfire.png",
 }: GuildTownProps) {
   const progress = Math.min(100, Math.max(0, (currentCp / nextLevelCp) * 100));
+  const [viewport, setViewport] = useState({ width: 0, height: 0 });
+  const mapX = useMotionValue(0);
+  const mapY = useMotionValue(0);
+
+  useEffect(() => {
+    const updateViewport = () => {
+      setViewport({ width: window.innerWidth, height: window.innerHeight });
+    };
+
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
+
+  useEffect(() => {
+    if (viewport.width === 0 || viewport.height === 0) return;
+
+    mapX.set(-viewport.width * 0.5);
+    mapY.set(-viewport.height * 0.5);
+  }, [mapX, mapY, viewport.height, viewport.width]);
 
   return (
     <main
+      className="relative h-screen w-full overflow-hidden"
       style={{
-        minHeight: "100svh",
-        position: "relative",
-        overflow: "hidden",
         background: "#112b1a",
         fontFamily: '"Press Start 2P", "DotGothic16", monospace',
         color: "#fff8d7",
       }}
     >
-      <img
-        className="pixelated"
-        src={baseSrc}
-        alt=""
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          objectPosition: "center bottom",
+      <motion.div
+        className="absolute left-0 top-0 h-[200vh] w-[200vw] cursor-grab active:cursor-grabbing"
+        drag
+        dragConstraints={{
+          left: -viewport.width,
+          right: 0,
+          top: -viewport.height,
+          bottom: 0,
         }}
-      />
-
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          inset: 0,
-          background:
-            "linear-gradient(180deg, rgba(4, 18, 18, 0.1) 0%, rgba(5, 16, 12, 0.04) 48%, rgba(6, 15, 10, 0.3) 100%)",
-          pointerEvents: "none",
-          zIndex: 1,
-        }}
-      />
-
-      <div
-        aria-hidden="true"
-        className="bg-[radial-gradient(ellipse_at_center,_transparent_20%,_rgba(0,0,0,0.6)_100%)]"
-        style={{
-          position: "absolute",
-          inset: 0,
-          pointerEvents: "none",
-          zIndex: 2,
-        }}
-      />
-
-      <div
-        style={{
-          position: "absolute",
-          left: "50%",
-          top: "50%",
-          width: "clamp(210px, 29vw, 430px)",
-          transform: "translate(-64%, -28%)",
-          zIndex: 2,
-          pointerEvents: "none",
-        }}
+        dragElastic={0.08}
+        dragMomentum={false}
+        style={{ x: mapX, y: mapY, touchAction: "none", userSelect: "none" }}
       >
-        <motion.img
-          className="pixelated drop-shadow-[18px_22px_0_rgba(0,0,0,0.28)]"
-          src={mainStructureSrc}
+        <img
+          className="pixelated"
+          src={baseSrc}
           alt=""
           aria-hidden="true"
-          initial={{ opacity: 0, y: 18, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.36, ease: steppedEase(7) }}
+          draggable={false}
           style={{
-            display: "block",
+            position: "absolute",
+            inset: 0,
             width: "100%",
-            height: "auto",
-            mixBlendMode: "screen",
+            height: "100%",
+            objectFit: "cover",
+            objectPosition: "center bottom",
+            pointerEvents: "none",
           }}
         />
-      </div>
 
-      <div
-        style={{
-          position: "absolute",
-          left: "50%",
-          top: "50%",
-          width: "clamp(92px, 12vw, 164px)",
-          transform: "translate(42%, 62%)",
-          zIndex: 3,
-          pointerEvents: "none",
-        }}
-      >
         <div
           aria-hidden="true"
           style={{
             position: "absolute",
+            inset: 0,
+            background:
+              "linear-gradient(180deg, rgba(4, 18, 18, 0.1) 0%, rgba(5, 16, 12, 0.04) 48%, rgba(6, 15, 10, 0.3) 100%)",
+            pointerEvents: "none",
+            zIndex: 1,
+          }}
+        />
+
+        <div
+          aria-hidden="true"
+          className="bg-[radial-gradient(ellipse_at_center,_transparent_20%,_rgba(0,0,0,0.6)_100%)]"
+          style={{
+            position: "absolute",
+            inset: 0,
+            pointerEvents: "none",
+            zIndex: 2,
+          }}
+        />
+
+        <div
+          style={{
+            position: "absolute",
             left: "50%",
-            top: "46%",
-            width: "68%",
-            aspectRatio: "1 / 1",
-            transform: "translate(-50%, -50%)",
+            top: "50%",
+            width: "clamp(210px, 29vw, 430px)",
+            transform: "translate(-64%, -28%)",
+            zIndex: 3,
+            pointerEvents: "none",
           }}
         >
-          <motion.div
-            className="bg-orange-500/30 blur-2xl"
-            animate={{
-              opacity: [0.58, 0.88, 0.66, 0.8, 0.58],
-              scale: [0.92, 1.08, 0.98, 1.04, 0.92],
-            }}
-            transition={{ duration: 1.45, ease: "easeInOut", repeat: Infinity }}
+          <motion.img
+            className="pixelated drop-shadow-[18px_22px_0_rgba(0,0,0,0.28)]"
+            src={mainStructureSrc}
+            alt=""
+            aria-hidden="true"
+            initial={{ opacity: 0, y: 18, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.36, ease: steppedEase(7) }}
             style={{
+              display: "block",
               width: "100%",
-              height: "100%",
-              clipPath: "circle(50% at 50% 50%)",
+              height: "auto",
+              mixBlendMode: "screen",
             }}
           />
         </div>
-        <motion.img
-          className="pixelated drop-shadow-[10px_14px_0_rgba(0,0,0,0.26)]"
-          src={bonfireSrc}
-          alt=""
-          aria-hidden="true"
-          initial={{ opacity: 0, scale: 0.86 }}
-          animate={{
-            opacity: 1,
-            scale: [1, 1.035, 0.98, 1.02, 1],
-            y: [0, -2, 1, -1, 0],
-          }}
-          transition={{
-            opacity: { duration: 0.26, ease: steppedEase(5) },
-            scale: { duration: 1.25, ease: "easeInOut", repeat: Infinity },
-            y: { duration: 1.25, ease: "easeInOut", repeat: Infinity },
-          }}
+
+        <div
           style={{
-            display: "block",
-            position: "relative",
-            width: "100%",
-            height: "auto",
-            mixBlendMode: "screen",
+            position: "absolute",
+            left: "50%",
+            top: "50%",
+            width: "clamp(92px, 12vw, 164px)",
+            transform: "translate(42%, 62%)",
+            zIndex: 4,
+            pointerEvents: "none",
           }}
-        />
-      </div>
+        >
+          <div
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              left: "50%",
+              top: "46%",
+              width: "68%",
+              aspectRatio: "1 / 1",
+              transform: "translate(-50%, -50%)",
+            }}
+          >
+            <motion.div
+              className="bg-orange-500/30 blur-2xl"
+              animate={{
+                opacity: [0.58, 0.88, 0.66, 0.8, 0.58],
+                scale: [0.92, 1.08, 0.98, 1.04, 0.92],
+              }}
+              transition={{ duration: 1.45, ease: "easeInOut", repeat: Infinity }}
+              style={{
+                width: "100%",
+                height: "100%",
+                clipPath: "circle(50% at 50% 50%)",
+              }}
+            />
+          </div>
+          <motion.img
+            className="pixelated drop-shadow-[10px_14px_0_rgba(0,0,0,0.26)]"
+            src={bonfireSrc}
+            alt=""
+            aria-hidden="true"
+            initial={{ opacity: 0, scale: 0.86 }}
+            animate={{
+              opacity: 1,
+              scale: [1, 1.035, 0.98, 1.02, 1],
+              y: [0, -2, 1, -1, 0],
+            }}
+            transition={{
+              opacity: { duration: 0.26, ease: steppedEase(5) },
+              scale: { duration: 1.25, ease: "easeInOut", repeat: Infinity },
+              y: { duration: 1.25, ease: "easeInOut", repeat: Infinity },
+            }}
+            style={{
+              display: "block",
+              position: "relative",
+              width: "100%",
+              height: "auto",
+              mixBlendMode: "screen",
+            }}
+          />
+        </div>
+      </motion.div>
 
       <motion.header
         initial={{ opacity: 0, y: -14 }}
