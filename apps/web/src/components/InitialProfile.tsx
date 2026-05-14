@@ -84,12 +84,22 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
     } catch {
       // AudioContext not supported
     }
+
+    return () => {
+      void audioCtxRef.current?.close();
+      audioCtxRef.current = null;
+    };
   }, []);
 
   const playBeep = useCallback(() => {
-    if (!audioCtxRef.current || audioCtxRef.current.state === "suspended") return;
-    try {
+    void (async () => {
       const ctx = audioCtxRef.current;
+      if (!ctx) return;
+      if (ctx.state === "suspended") {
+        await ctx.resume();
+      }
+      if (ctx.state !== "running") return;
+
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = "square";
@@ -101,9 +111,9 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
       gain.connect(ctx.destination);
       osc.start();
       osc.stop(ctx.currentTime + 0.06);
-    } catch {
-      // ignore
-    }
+    })().catch(() => {
+      // Browser autoplay restrictions may still block sound until the next user gesture.
+    });
   }, []);
 
   // タイプライターエフェクト
