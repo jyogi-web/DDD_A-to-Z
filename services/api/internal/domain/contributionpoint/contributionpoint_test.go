@@ -1,4 +1,4 @@
-package cp
+package contributionpoint
 
 import (
 	"testing"
@@ -28,7 +28,7 @@ func TestNewLedgerEntryValidation(t *testing.T) {
 			reason:    "reward",
 			source:    "test",
 			sourceID:  "source_1",
-			wantError: "cp ledger id is required",
+			wantError: "contribution point ledger id is required",
 		},
 		{
 			name:      "source_id が空ならエラー",
@@ -39,7 +39,7 @@ func TestNewLedgerEntryValidation(t *testing.T) {
 			reason:    "reward",
 			source:    "test",
 			sourceID:  "",
-			wantError: "cp source id is required",
+			wantError: "contribution point source id is required",
 		},
 		{
 			name:      "amount が 0 ならエラー",
@@ -50,7 +50,7 @@ func TestNewLedgerEntryValidation(t *testing.T) {
 			reason:    "reward",
 			source:    "test",
 			sourceID:  "source_1",
-			wantError: "cp amount must not be zero",
+			wantError: "contribution point amount must not be zero",
 		},
 	}
 

@@ -278,14 +278,14 @@ services/api/internal/
 ├── domain/
 │   ├── user/
 │   ├── repositoryanalysis/
-│   ├── cp/
+│   ├── contributionpoint/
 │   └── guild/
 ├── application/
 │   ├── auth/
 │   ├── user/
 │   ├── github/
 │   ├── repositoryanalysis/
-│   ├── cp/
+│   ├── contributionpoint/
 │   ├── guild/
 │   └── mypage/
 ├── infrastructure/

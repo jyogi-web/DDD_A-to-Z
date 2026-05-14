@@ -1,15 +1,15 @@
-package cp
+package contributionpoint
 
 import (
 	"context"
 	"errors"
 	"time"
 
-	cpdomain "github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/cp"
+	contributionpointdomain "github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/contributionpoint"
 	"github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/user"
 )
 
-var ErrInsufficientBalance = errors.New("cp balance is insufficient")
+var ErrInsufficientBalance = errors.New("contribution point balance is insufficient")
 
 type UseCase struct {
 	ledger LedgerRepository
@@ -31,17 +31,17 @@ func NewService(ledger LedgerRepository, ids IDGenerator) *Service {
 	return NewUseCase(ledger, ids)
 }
 
-func (u *UseCase) Apply(ctx context.Context, command ApplyCommand) (cpdomain.LedgerEntry, error) {
+func (u *UseCase) Apply(ctx context.Context, command ApplyCommand) (contributionpointdomain.LedgerEntry, error) {
 	if err := ctx.Err(); err != nil {
-		return cpdomain.LedgerEntry{}, err
+		return contributionpointdomain.LedgerEntry{}, err
 	}
 
 	id, err := u.ids.NewID()
 	if err != nil {
-		return cpdomain.LedgerEntry{}, err
+		return contributionpointdomain.LedgerEntry{}, err
 	}
 
-	entry, err := cpdomain.NewLedgerEntry(
+	entry, err := contributionpointdomain.NewLedgerEntry(
 		id,
 		command.UserID,
 		command.Amount,
@@ -52,28 +52,28 @@ func (u *UseCase) Apply(ctx context.Context, command ApplyCommand) (cpdomain.Led
 		u.now(),
 	)
 	if err != nil {
-		return cpdomain.LedgerEntry{}, err
+		return contributionpointdomain.LedgerEntry{}, err
 	}
 
 	return u.ledger.Record(ctx, entry)
 }
 
-func (u *UseCase) Earn(ctx context.Context, command EarnCommand) (cpdomain.LedgerEntry, error) {
+func (u *UseCase) Earn(ctx context.Context, command EarnCommand) (contributionpointdomain.LedgerEntry, error) {
 	return u.Apply(ctx, ApplyCommand{
 		UserID:     command.UserID,
 		Amount:     command.Amount,
-		Type:       cpdomain.EntryTypeEarn,
+		Type:       contributionpointdomain.EntryTypeEarn,
 		Reason:     command.Reason,
 		SourceType: command.SourceType,
 		SourceID:   command.SourceID,
 	})
 }
 
-func (u *UseCase) Spend(ctx context.Context, command SpendCommand) (cpdomain.LedgerEntry, error) {
+func (u *UseCase) Spend(ctx context.Context, command SpendCommand) (contributionpointdomain.LedgerEntry, error) {
 	return u.Apply(ctx, ApplyCommand{
 		UserID:     command.UserID,
 		Amount:     -command.Amount,
-		Type:       cpdomain.EntryTypeSpend,
+		Type:       contributionpointdomain.EntryTypeSpend,
 		Reason:     command.Reason,
 		SourceType: command.SourceType,
 		SourceID:   command.SourceID,
@@ -91,7 +91,7 @@ func (u *UseCase) GetBalance(ctx context.Context, userID user.ID) (int64, error)
 type ApplyCommand struct {
 	UserID     user.ID
 	Amount     int64
-	Type       cpdomain.EntryType
+	Type       contributionpointdomain.EntryType
 	Reason     string
 	SourceType string
 	SourceID   string

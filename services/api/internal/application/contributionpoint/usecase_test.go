@@ -1,4 +1,4 @@
-package cp
+package contributionpoint
 
 import (
 	"context"
@@ -6,21 +6,21 @@ import (
 	"testing"
 	"time"
 
-	cpdomain "github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/cp"
+	contributionpointdomain "github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/contributionpoint"
 	"github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/user"
 )
 
 type fakeLedgerRepository struct {
-	recorded []cpdomain.LedgerEntry
+	recorded []contributionpointdomain.LedgerEntry
 	balance  int64
 }
 
-func (r *fakeLedgerRepository) Record(ctx context.Context, entry cpdomain.LedgerEntry) (cpdomain.LedgerEntry, error) {
+func (r *fakeLedgerRepository) Record(ctx context.Context, entry contributionpointdomain.LedgerEntry) (contributionpointdomain.LedgerEntry, error) {
 	if err := ctx.Err(); err != nil {
-		return cpdomain.LedgerEntry{}, err
+		return contributionpointdomain.LedgerEntry{}, err
 	}
 	if r.balance+entry.Amount < 0 {
-		return cpdomain.LedgerEntry{}, ErrInsufficientBalance
+		return contributionpointdomain.LedgerEntry{}, ErrInsufficientBalance
 	}
 
 	r.recorded = append(r.recorded, entry)
@@ -45,9 +45,9 @@ func (g fakeIDGenerator) NewID() (string, error) {
 }
 
 func TestUseCaseApply(t *testing.T) {
-	t.Run("CP増減を履歴として記録しDBが確定した残高を返す", func(t *testing.T) {
+	t.Run("ContributionPoint増減を履歴として記録しDBが確定した残高を返す", func(t *testing.T) {
 		ledger := &fakeLedgerRepository{}
-		usecase := NewUseCase(ledger, fakeIDGenerator{id: "cp_ledger_1"})
+		usecase := NewUseCase(ledger, fakeIDGenerator{id: "contribution_point_ledger_1"})
 		usecase.now = func() time.Time {
 			return time.Date(2026, 5, 13, 9, 0, 0, 0, time.UTC)
 		}
@@ -55,7 +55,7 @@ func TestUseCaseApply(t *testing.T) {
 		entry, err := usecase.Apply(context.Background(), ApplyCommand{
 			UserID:     user.ID("user_1"),
 			Amount:     120,
-			Type:       cpdomain.EntryTypeEarn,
+			Type:       contributionpointdomain.EntryTypeEarn,
 			Reason:     "repository analysis reward",
 			SourceType: "repository_analysis",
 			SourceID:   "analysis_1",
@@ -64,8 +64,8 @@ func TestUseCaseApply(t *testing.T) {
 			t.Fatalf("Apply() がエラーを返しました: %v", err)
 		}
 
-		if entry.ID != "cp_ledger_1" {
-			t.Fatalf("entry.ID = %q, 期待値 cp_ledger_1", entry.ID)
+		if entry.ID != "contribution_point_ledger_1" {
+			t.Fatalf("entry.ID = %q, 期待値 contribution_point_ledger_1", entry.ID)
 		}
 		if entry.BalanceAfter != 120 {
 			t.Fatalf("entry.BalanceAfter = %d, 期待値 120", entry.BalanceAfter)
@@ -80,9 +80,9 @@ func TestUseCaseApply(t *testing.T) {
 }
 
 func TestUseCaseEarn(t *testing.T) {
-	t.Run("CPServiceとして生成して獲得処理を呼び出せる", func(t *testing.T) {
+	t.Run("ContributionPointServiceとして生成して獲得処理を呼び出せる", func(t *testing.T) {
 		ledger := &fakeLedgerRepository{}
-		service := NewService(ledger, fakeIDGenerator{id: "cp_ledger_service_1"})
+		service := NewService(ledger, fakeIDGenerator{id: "contribution_point_ledger_service_1"})
 
 		entry, err := service.Earn(context.Background(), EarnCommand{
 			UserID:     user.ID("user_1"),
@@ -99,9 +99,9 @@ func TestUseCaseEarn(t *testing.T) {
 		}
 	})
 
-	t.Run("CP獲得を共通サービス経由で履歴に記録する", func(t *testing.T) {
+	t.Run("ContributionPoint獲得を共通サービス経由で履歴に記録する", func(t *testing.T) {
 		ledger := &fakeLedgerRepository{balance: 10}
-		usecase := NewUseCase(ledger, fakeIDGenerator{id: "cp_ledger_earn_1"})
+		usecase := NewUseCase(ledger, fakeIDGenerator{id: "contribution_point_ledger_earn_1"})
 		usecase.now = func() time.Time {
 			return time.Date(2026, 5, 13, 9, 0, 0, 0, time.UTC)
 		}
@@ -117,8 +117,8 @@ func TestUseCaseEarn(t *testing.T) {
 			t.Fatalf("Earn() がエラーを返しました: %v", err)
 		}
 
-		if entry.Type != cpdomain.EntryTypeEarn {
-			t.Fatalf("entry.Type = %q, 期待値 %q", entry.Type, cpdomain.EntryTypeEarn)
+		if entry.Type != contributionpointdomain.EntryTypeEarn {
+			t.Fatalf("entry.Type = %q, 期待値 %q", entry.Type, contributionpointdomain.EntryTypeEarn)
 		}
 		if entry.Amount != 120 {
 			t.Fatalf("entry.Amount = %d, 期待値 120", entry.Amount)
@@ -130,9 +130,9 @@ func TestUseCaseEarn(t *testing.T) {
 }
 
 func TestUseCaseSpend(t *testing.T) {
-	t.Run("CP消費を共通サービス経由で負の履歴として記録する", func(t *testing.T) {
+	t.Run("ContributionPoint消費を共通サービス経由で負の履歴として記録する", func(t *testing.T) {
 		ledger := &fakeLedgerRepository{balance: 100}
-		usecase := NewUseCase(ledger, fakeIDGenerator{id: "cp_ledger_spend_1"})
+		usecase := NewUseCase(ledger, fakeIDGenerator{id: "contribution_point_ledger_spend_1"})
 		usecase.now = func() time.Time {
 			return time.Date(2026, 5, 13, 10, 0, 0, 0, time.UTC)
 		}
@@ -148,8 +148,8 @@ func TestUseCaseSpend(t *testing.T) {
 			t.Fatalf("Spend() がエラーを返しました: %v", err)
 		}
 
-		if entry.Type != cpdomain.EntryTypeSpend {
-			t.Fatalf("entry.Type = %q, 期待値 %q", entry.Type, cpdomain.EntryTypeSpend)
+		if entry.Type != contributionpointdomain.EntryTypeSpend {
+			t.Fatalf("entry.Type = %q, 期待値 %q", entry.Type, contributionpointdomain.EntryTypeSpend)
 		}
 		if entry.Amount != -40 {
 			t.Fatalf("entry.Amount = %d, 期待値 -40", entry.Amount)
@@ -159,9 +159,9 @@ func TestUseCaseSpend(t *testing.T) {
 		}
 	})
 
-	t.Run("CP不足なら不足エラーを返し履歴を残さない", func(t *testing.T) {
+	t.Run("ContributionPoint不足なら不足エラーを返し履歴を残さない", func(t *testing.T) {
 		ledger := &fakeLedgerRepository{balance: 30}
-		usecase := NewUseCase(ledger, fakeIDGenerator{id: "cp_ledger_spend_2"})
+		usecase := NewUseCase(ledger, fakeIDGenerator{id: "contribution_point_ledger_spend_2"})
 
 		_, err := usecase.Spend(context.Background(), SpendCommand{
 			UserID:     user.ID("user_1"),
@@ -182,7 +182,7 @@ func TestUseCaseSpend(t *testing.T) {
 func TestUseCaseGetBalance(t *testing.T) {
 	t.Run("現在残高を共通サービス経由で取得する", func(t *testing.T) {
 		ledger := &fakeLedgerRepository{balance: 75}
-		usecase := NewUseCase(ledger, fakeIDGenerator{id: "cp_ledger_1"})
+		usecase := NewUseCase(ledger, fakeIDGenerator{id: "contribution_point_ledger_1"})
 
 		balance, err := usecase.GetBalance(context.Background(), user.ID("user_1"))
 		if err != nil {

@@ -1,14 +1,14 @@
-package cp
+package contributionpoint
 
 import (
 	"context"
 
-	cpdomain "github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/cp"
+	contributionpointdomain "github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/contributionpoint"
 	"github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/user"
 )
 
 type LedgerRepository interface {
-	Record(ctx context.Context, entry cpdomain.LedgerEntry) (cpdomain.LedgerEntry, error)
+	Record(ctx context.Context, entry contributionpointdomain.LedgerEntry) (contributionpointdomain.LedgerEntry, error)
 	GetBalance(ctx context.Context, userID user.ID) (int64, error)
 }
 

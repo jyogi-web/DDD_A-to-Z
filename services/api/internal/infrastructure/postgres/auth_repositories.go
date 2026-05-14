@@ -48,7 +48,7 @@ func (s *AuthStore) FindOrCreateByGitHub(ctx context.Context, profile user.GitHu
 		}
 
 		if err := tx.Exec(`
-			INSERT INTO cp_accounts (user_id, balance, created_at, updated_at)
+			INSERT INTO contribution_point_accounts (user_id, balance, created_at, updated_at)
 			VALUES (?, 0, ?, ?)
 			ON CONFLICT (user_id) DO NOTHING
 		`, userID, now, now).Error; err != nil {
