@@ -207,7 +207,7 @@ function GuildNavigation({ onNavigate }: { onNavigate: (path: string) => void })
       style={{
         position: "fixed",
         left: "50%",
-        bottom: "clamp(18px, 5.2vh, 54px)",
+        bottom: "calc(env(safe-area-inset-bottom, 0px) + clamp(18px, 5.2vh, 54px))",
         zIndex: 3,
         display: "grid",
         gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
