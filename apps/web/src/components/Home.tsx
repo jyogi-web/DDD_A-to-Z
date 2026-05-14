@@ -351,7 +351,7 @@ export function Home({ onNavigate }: HomeProps) {
                 marginBottom: "10px",
               }}
             >
-              CONTRIBUTION POWER
+              CONTRIBUTION POINT
             </div>
             <div style={{ display: "grid", gap: "6px" }}>
               <LabelValue label="TOTAL CP" value={player.totalCp.toLocaleString()} />
