@@ -35,7 +35,7 @@ func NewTokenCipher(secret string) (*TokenCipher, error) {
 	return &TokenCipher{aead: aead}, nil
 }
 
-func (c *TokenCipher) Encrypt(plaintext string) (string, error) {
+func (c *TokenCipher) Encrypt(plaintext, associatedData string) (string, error) {
 	if plaintext == "" {
 		return "", nil
 	}
@@ -45,11 +45,11 @@ func (c *TokenCipher) Encrypt(plaintext string) (string, error) {
 		return "", err
 	}
 
-	sealed := c.aead.Seal(nonce, nonce, []byte(plaintext), nil)
+	sealed := c.aead.Seal(nonce, nonce, []byte(plaintext), []byte(associatedData))
 	return base64.RawURLEncoding.EncodeToString(sealed), nil
 }
 
-func (c *TokenCipher) Decrypt(ciphertext string) (string, error) {
+func (c *TokenCipher) Decrypt(ciphertext, associatedData string) (string, error) {
 	if ciphertext == "" {
 		return "", nil
 	}
@@ -64,7 +64,7 @@ func (c *TokenCipher) Decrypt(ciphertext string) (string, error) {
 
 	nonce := sealed[:c.aead.NonceSize()]
 	payload := sealed[c.aead.NonceSize():]
-	plaintext, err := c.aead.Open(nil, nonce, payload, nil)
+	plaintext, err := c.aead.Open(nil, nonce, payload, []byte(associatedData))
 	if err != nil {
 		return "", fmt.Errorf("%w: %v", ErrInvalidCiphertext, err)
 	}

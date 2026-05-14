@@ -18,8 +18,8 @@ type AuthStore struct {
 }
 
 type TokenCipher interface {
-	Encrypt(plaintext string) (string, error)
-	Decrypt(ciphertext string) (string, error)
+	Encrypt(plaintext, associatedData string) (string, error)
+	Decrypt(ciphertext, associatedData string) (string, error)
 }
 
 func NewAuthStore(db *gorm.DB, tokenCiphers ...TokenCipher) *AuthStore {
@@ -36,14 +36,14 @@ func (s *AuthStore) FindOrCreateByGitHub(ctx context.Context, login authapp.GitH
 	if _, err := user.NewGitHubAccount(profile); err != nil {
 		return user.User{}, err
 	}
-	accessTokenCiphertext, err := s.encryptAccessToken(login.AccessToken)
+	userID := user.ID(fmt.Sprintf("github_%d", profile.GitHubID))
+	accessTokenCiphertext, err := s.encryptAccessToken(login.AccessToken, userID)
 	if err != nil {
 		return user.User{}, err
 	}
 
 	var appUser user.User
 	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		userID := user.ID(fmt.Sprintf("github_%d", profile.GitHubID))
 		if err := tx.Exec(`
 			INSERT INTO users (id, created_at, updated_at)
 			VALUES (?, ?, ?)
@@ -110,7 +110,7 @@ func (s *AuthStore) GitHubAccessToken(ctx context.Context, userID user.ID) (stri
 		return "", false, fmt.Errorf("github token cipher is not configured")
 	}
 
-	accessToken, err := s.tokenCipher.Decrypt(ciphertext)
+	accessToken, err := s.tokenCipher.Decrypt(ciphertext, string(userID))
 	if err != nil {
 		return "", false, err
 	}
@@ -200,7 +200,7 @@ func tokenHash(token string) string {
 	return hex.EncodeToString(sum[:])
 }
 
-func (s *AuthStore) encryptAccessToken(accessToken string) (string, error) {
+func (s *AuthStore) encryptAccessToken(accessToken string, userID user.ID) (string, error) {
 	if accessToken == "" {
 		return "", nil
 	}
@@ -208,5 +208,5 @@ func (s *AuthStore) encryptAccessToken(accessToken string) (string, error) {
 		return "", fmt.Errorf("github token cipher is not configured")
 	}
 
-	return s.tokenCipher.Encrypt(accessToken)
+	return s.tokenCipher.Encrypt(accessToken, string(userID))
 }
