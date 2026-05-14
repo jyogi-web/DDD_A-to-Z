@@ -106,7 +106,11 @@ func (s *RepositoryStore) ListRepositories(ctx context.Context, userID user.ID) 
 
 	repositories := make([]repositoryanalysis.Repository, 0, len(records))
 	for _, record := range records {
-		repositories = append(repositories, record.toDomain())
+		repository, err := record.toDomain()
+		if err != nil {
+			return nil, err
+		}
+		repositories = append(repositories, repository)
 	}
 
 	return repositories, nil
@@ -129,8 +133,8 @@ type repositoryRecord struct {
 	SyncedAt        time.Time  `gorm:"column:synced_at"`
 }
 
-func (r repositoryRecord) toDomain() repositoryanalysis.Repository {
-	return repositoryanalysis.Repository{
+func (r repositoryRecord) toDomain() (repositoryanalysis.Repository, error) {
+	return repositoryanalysis.NewRepository(repositoryanalysis.Repository{
 		GitHubID:        r.GitHubID,
 		UserID:          r.UserID,
 		Owner:           r.Owner,
@@ -145,5 +149,5 @@ func (r repositoryRecord) toDomain() repositoryanalysis.Repository {
 		PushedAt:        r.PushedAt,
 		GitHubUpdatedAt: r.GitHubUpdatedAt,
 		SyncedAt:        r.SyncedAt,
-	}
+	})
 }

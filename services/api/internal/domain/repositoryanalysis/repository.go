@@ -26,8 +26,8 @@ type Repository struct {
 }
 
 func NewRepository(repository Repository) (Repository, error) {
-	if repository.GitHubID == 0 {
-		return Repository{}, errors.New("github repository id is required")
+	if repository.GitHubID <= 0 {
+		return Repository{}, errors.New("github repository id must be a positive integer")
 	}
 	if repository.UserID == "" {
 		return Repository{}, errors.New("user id is required")

@@ -20,7 +20,7 @@ func TestAuthStoreFindOrCreateByGitHub(t *testing.T) {
 	t.Run("GitHubプロフィールからユーザーを作成または更新できる", func(t *testing.T) {
 		ctx := context.Background()
 		tx := beginPostgresTestTransaction(t, ctx)
-		store := NewAuthStore(tx)
+		store := NewAuthStore(tx, newTestTokenCipher(t))
 
 		githubID := uniqueGitHubID()
 		now := time.Date(2026, 5, 12, 10, 0, 0, 0, time.UTC)
@@ -85,7 +85,7 @@ func TestAuthStoreSessionLifecycle(t *testing.T) {
 	t.Run("セッションの保存と取得ができる", func(t *testing.T) {
 		ctx := context.Background()
 		tx := beginPostgresTestTransaction(t, ctx)
-		store := NewAuthStore(tx)
+		store := NewAuthStore(tx, newTestTokenCipher(t))
 
 		now := time.Date(2026, 5, 12, 10, 0, 0, 0, time.UTC)
 		profile := user.GitHubProfile{
@@ -147,11 +147,7 @@ func TestAuthStoreGitHubAccessToken(t *testing.T) {
 	t.Run("GitHub access token を暗号化保存して復号取得できる", func(t *testing.T) {
 		ctx := context.Background()
 		tx := beginPostgresTestTransaction(t, ctx)
-		cipher, err := security.NewTokenCipher("test-token-secret")
-		if err != nil {
-			t.Fatalf("NewTokenCipher() がエラーを返しました: %v", err)
-		}
-		store := NewAuthStore(tx, cipher)
+		store := NewAuthStore(tx, newTestTokenCipher(t))
 
 		now := time.Date(2026, 5, 14, 16, 0, 0, 0, time.UTC)
 		profile := user.GitHubProfile{
@@ -251,6 +247,17 @@ func verifyAuthSchema(db *gorm.DB) error {
 
 func uniqueGitHubID() int64 {
 	return 900_000_000_000 + time.Now().UnixNano()%100_000_000_000
+}
+
+func newTestTokenCipher(t *testing.T) *security.TokenCipher {
+	t.Helper()
+
+	cipher, err := security.NewTokenCipher("test-token-secret")
+	if err != nil {
+		t.Fatalf("NewTokenCipher() がエラーを返しました: %v", err)
+	}
+
+	return cipher
 }
 
 func isMissingAuthSchemaError(err error) bool {

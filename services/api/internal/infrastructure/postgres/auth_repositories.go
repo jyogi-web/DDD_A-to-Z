@@ -22,12 +22,7 @@ type TokenCipher interface {
 	Decrypt(ciphertext, associatedData string) (string, error)
 }
 
-func NewAuthStore(db *gorm.DB, tokenCiphers ...TokenCipher) *AuthStore {
-	var tokenCipher TokenCipher
-	if len(tokenCiphers) > 0 {
-		tokenCipher = tokenCiphers[0]
-	}
-
+func NewAuthStore(db *gorm.DB, tokenCipher TokenCipher) *AuthStore {
 	return &AuthStore{db: db, tokenCipher: tokenCipher}
 }
 
