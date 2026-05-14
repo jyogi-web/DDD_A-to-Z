@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, type Variants } from "framer-motion";
 import { useNavigate } from "react-router";
 import { ParticleBackground } from "./components/ParticleBackground";
@@ -40,6 +40,9 @@ function isDaytime(hour: number): boolean {
 function App() {
   const navigate = useNavigate();
   const titleBgmRef = useRef<HTMLAudioElement | null>(null);
+  const confirmModalSeRef = useRef<HTMLAudioElement | null>(null);
+  const modalCancelSeRef = useRef<HTMLAudioElement | null>(null);
+  const modalConfirmSeRef = useRef<HTMLAudioElement | null>(null);
   const [isDay, setIsDay] = useState(() => isDaytime(new Date().getHours()));
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [isInitialProfileCompleted, setIsInitialProfileCompleted] = useState(false);
@@ -128,6 +131,23 @@ function App() {
   const handleStart = () => {
     navigate(isInitialProfileCompleted ? "/home" : "/profile");
   };
+  const playSe = useCallback((audio: HTMLAudioElement | null) => {
+    if (!audio) {
+      return;
+    }
+
+    audio.currentTime = 0;
+    void audio.play().catch(() => {
+      // Browser autoplay restrictions can still block sound in unusual navigation paths.
+    });
+  }, []);
+  useEffect(() => {
+    if (!isLogoutDialogOpen) {
+      return;
+    }
+
+    playSe(confirmModalSeRef.current);
+  }, [isLogoutDialogOpen, playSe]);
   const toggleBgm = () => {
     const shouldMute = !isBgmMuted;
     setIsBgmMuted(shouldMute);
@@ -161,6 +181,9 @@ function App() {
       }}
     >
       <audio ref={titleBgmRef} src="/bgm/title_bgm.mp3" loop preload="auto" aria-hidden="true" />
+      <audio ref={confirmModalSeRef} src="/SE/confirm-modal.wav" preload="auto" aria-hidden="true" />
+      <audio ref={modalCancelSeRef} src="/SE/modal-cancel.wav" preload="auto" aria-hidden="true" />
+      <audio ref={modalConfirmSeRef} src="/SE/modal-confirm.wav" preload="auto" aria-hidden="true" />
 
       <motion.button
         type="button"
@@ -664,7 +687,10 @@ function App() {
                 type="button"
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ y: 2, scale: 0.98 }}
-                onClick={() => setIsLogoutDialogOpen(false)}
+                onClick={() => {
+                  playSe(modalCancelSeRef.current);
+                  setIsLogoutDialogOpen(false);
+                }}
                 style={{
                   border: "2px solid rgba(255, 255, 255, 0.34)",
                   borderBottomColor: "rgba(0,0,0,0.78)",
@@ -687,6 +713,7 @@ function App() {
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ y: 2, scale: 0.98 }}
                 onClick={() => {
+                  playSe(modalConfirmSeRef.current);
                   void confirmLogout();
                 }}
                 style={{
