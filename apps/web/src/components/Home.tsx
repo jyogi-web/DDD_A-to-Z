@@ -1,5 +1,5 @@
 import { motion, type Variants } from "framer-motion";
-import { useCallback, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { GopherSprite } from "./GopherSprite";
 
 interface HomeProps {
@@ -21,6 +21,14 @@ const navItems = [
 ];
 
 const steppedEase = (steps: number) => (t: number) => Math.floor(t * steps) / steps;
+
+const gopherTalkLines = [
+  "今日もコード日和！",
+  "ギルド広場を巡回中。",
+  "クエスト、行く？",
+  "休憩もだいじ。",
+  "CP、ためてこ！",
+] as const;
 
 const panelVariants: Variants = {
   hidden: { opacity: 0, y: -14 },
@@ -254,12 +262,43 @@ function ReturnTitleDialog({
 
 function WalkingGopher() {
   const lastXRef = useRef<number | null>(null);
+  const talkTimeoutRef = useRef<number | null>(null);
   const [direction, setDirection] = useState<"right" | "left">("right");
+  const [talkLine, setTalkLine] = useState<(typeof gopherTalkLines)[number] | null>(null);
+  const [reactionCount, setReactionCount] = useState(0);
   const walkRow = direction === "right" ? 1 : 2;
+  const speechBubbleSide =
+    direction === "right"
+      ? { left: "104px", right: "auto" }
+      : { left: "auto", right: "96px" };
+
+  useEffect(() => {
+    return () => {
+      if (talkTimeoutRef.current !== null) {
+        window.clearTimeout(talkTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const reactToClick = () => {
+    const nextLine = gopherTalkLines[reactionCount % gopherTalkLines.length];
+    setReactionCount((current) => current + 1);
+    setTalkLine(nextLine);
+
+    if (talkTimeoutRef.current !== null) {
+      window.clearTimeout(talkTimeoutRef.current);
+    }
+
+    talkTimeoutRef.current = window.setTimeout(() => {
+      setTalkLine(null);
+      talkTimeoutRef.current = null;
+    }, 2600);
+  };
 
   return (
-    <motion.div
-      aria-hidden="true"
+    <motion.button
+      type="button"
+      aria-label="Gopher君に話しかける"
       initial={false}
       animate={{
         x: ["16vw", "30vw", "24vw", "50vw", "62vw", "46vw", "28vw", "16vw"],
@@ -296,9 +335,47 @@ function WalkingGopher() {
         bottom: "clamp(6px, 2vh, 18px)",
         width: "92px",
         height: "100px",
-        pointerEvents: "none",
+        border: 0,
+        background: "transparent",
+        cursor: "pointer",
+        font: "inherit",
+        padding: 0,
+        zIndex: 4,
       }}
+      onClick={reactToClick}
     >
+      {talkLine && (
+        <motion.div
+          key={talkLine}
+          initial={{ opacity: 0, y: 8, scale: 0.94 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 8, scale: 0.94 }}
+          style={{
+            position: "absolute",
+            ...speechBubbleSide,
+            bottom: "46px",
+            width: "max-content",
+            maxWidth: "min(220px, 34vw)",
+            border: "2px solid rgba(255, 215, 0, 0.82)",
+            borderBottomColor: "rgba(111, 79, 28, 0.95)",
+            borderRightColor: "rgba(111, 79, 28, 0.95)",
+            background: "rgba(3, 10, 24, 0.9)",
+            boxShadow: "0 0 0 2px rgba(0,0,0,0.72), 4px 4px 0 rgba(0,0,0,0.42)",
+            color: "#fff8d7",
+            fontFamily: '"DotGothic16", monospace',
+            fontSize: "0.78rem",
+            lineHeight: 1.5,
+            letterSpacing: "0.04em",
+            padding: "8px 10px",
+            textAlign: "center",
+            whiteSpace: "normal",
+            pointerEvents: "none",
+            zIndex: 6,
+          }}
+        >
+          {talkLine}
+        </motion.div>
+      )}
       <motion.div
         animate={{ y: [0, -2, 0] }}
         transition={{ duration: 0.45, repeat: Infinity, ease: steppedEase(3) }}
@@ -312,7 +389,20 @@ function WalkingGopher() {
           transformOrigin: "left bottom",
         }}
       >
-        <GopherSprite frameCount={8} row={walkRow} />
+        <motion.div
+          key={reactionCount}
+          animate={
+            reactionCount === 0
+              ? {}
+              : {
+                  y: [0, -20, 0],
+                  rotate: [0, -5, 5, 0],
+                }
+          }
+          transition={{ duration: 0.42, ease: steppedEase(5) }}
+        >
+          <GopherSprite frameCount={8} row={walkRow} />
+        </motion.div>
       </motion.div>
       <motion.div
         animate={{ scaleX: [1, 0.86, 1], opacity: [0.34, 0.24, 0.34] }}
@@ -327,7 +417,7 @@ function WalkingGopher() {
           filter: "blur(1px)",
         }}
       />
-    </motion.div>
+    </motion.button>
   );
 }
 
@@ -519,7 +609,7 @@ export function Home({ onNavigate }: HomeProps) {
           style={{
             position: "relative",
             minHeight: "clamp(220px, 42vh, 520px)",
-            overflow: "hidden",
+            overflow: "visible",
           }}
         >
           <WalkingGopher />
