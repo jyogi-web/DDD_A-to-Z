@@ -6,7 +6,7 @@ import { WalkingGopher } from "./WalkingGopher";
 import { useHomeAudio } from "../hooks/useHomeAudio";
 
 interface HomeProps {
-  onNavigate: (path: string) => void;
+  onNavigate: (path: string) => void | Promise<void>;
 }
 
 const player = {
@@ -34,6 +34,7 @@ export function Home({ onNavigate }: HomeProps) {
   const [isReturnTitleDialogOpen, setIsReturnTitleDialogOpen] = useState(false);
   const {
     audioRefs,
+    audioError,
     playGopherTalk,
     playModalCancel,
     playModalOpen,
@@ -76,25 +77,25 @@ export function Home({ onNavigate }: HomeProps) {
       <audio
         ref={audioRefs.confirmModalSeRef}
         src="/SE/confirm-modal.wav"
-        preload="auto"
+        preload="none"
         aria-hidden="true"
       />
       <audio
         ref={audioRefs.modalCancelSeRef}
         src="/SE/modal-cancel.wav"
-        preload="auto"
+        preload="none"
         aria-hidden="true"
       />
       <audio
         ref={audioRefs.returnTitleSeRef}
         src="/SE/return-title.wav"
-        preload="auto"
+        preload="none"
         aria-hidden="true"
       />
       <audio
         ref={audioRefs.gopherTalkSeRef}
         src="/SE/gopher-talk.wav"
-        preload="auto"
+        preload="none"
         aria-hidden="true"
       />
 
@@ -154,6 +155,31 @@ export function Home({ onNavigate }: HomeProps) {
           onCancel={cancelReturnTitle}
           onConfirm={playReturnTitle}
         />
+      )}
+
+      {audioError && (
+        <div
+          role="alert"
+          style={{
+            position: "fixed",
+            right: "clamp(14px, 3vw, 28px)",
+            bottom: "clamp(14px, 3vw, 28px)",
+            zIndex: 12,
+            maxWidth: "min(320px, calc(100vw - 28px))",
+            border: "2px solid #ff5f56",
+            borderBottomColor: "rgba(0,0,0,0.82)",
+            borderRightColor: "rgba(0,0,0,0.82)",
+            background: "rgba(18, 6, 10, 0.94)",
+            boxShadow: "0 0 0 2px rgba(0,0,0,0.78), 5px 5px 0 rgba(0,0,0,0.48)",
+            color: "#fff8d7",
+            fontFamily: '"DotGothic16", monospace',
+            fontSize: "0.86rem",
+            lineHeight: 1.6,
+            padding: "10px 12px",
+          }}
+        >
+          {audioError}
+        </div>
       )}
     </main>
   );

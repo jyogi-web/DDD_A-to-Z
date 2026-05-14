@@ -1,11 +1,18 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-export function useHomeAudio(onNavigate: (path: string) => void) {
+const loadOnDemand = (audio: HTMLAudioElement) => {
+  if (audio.preload === "none" && audio.readyState === HTMLMediaElement.HAVE_NOTHING) {
+    audio.load();
+  }
+};
+
+export function useHomeAudio(onNavigate: (path: string) => void | Promise<void>) {
   const homeBgmRef = useRef<HTMLAudioElement | null>(null);
   const confirmModalSeRef = useRef<HTMLAudioElement | null>(null);
   const modalCancelSeRef = useRef<HTMLAudioElement | null>(null);
   const returnTitleSeRef = useRef<HTMLAudioElement | null>(null);
   const gopherTalkSeRef = useRef<HTMLAudioElement | null>(null);
+  const [audioError, setAudioError] = useState<string | null>(null);
 
   useEffect(() => {
     const audio = homeBgmRef.current;
@@ -56,6 +63,7 @@ export function useHomeAudio(onNavigate: (path: string) => void) {
       return;
     }
 
+    loadOnDemand(audio);
     audio.currentTime = 0;
     void audio.play().catch(() => {
       // Browser autoplay restrictions can still block sound in unusual navigation paths.
@@ -79,6 +87,7 @@ export function useHomeAudio(onNavigate: (path: string) => void) {
         resolve();
       };
 
+      loadOnDemand(audio);
       audio.currentTime = 0;
       audio.addEventListener("ended", finish, { once: true });
       audio.addEventListener("error", finish, { once: true });
@@ -97,8 +106,14 @@ export function useHomeAudio(onNavigate: (path: string) => void) {
   }, [playSe]);
 
   const playReturnTitle = useCallback(async () => {
-    await playSeUntilEnd(returnTitleSeRef.current);
-    onNavigate("/");
+    try {
+      setAudioError(null);
+      await playSeUntilEnd(returnTitleSeRef.current);
+      await onNavigate("/");
+    } catch (error) {
+      console.error("failed to return to title from home", error);
+      setAudioError("タイトル画面への移動に失敗しました。");
+    }
   }, [onNavigate, playSeUntilEnd]);
 
   const playGopherTalk = useCallback(() => {
@@ -113,6 +128,7 @@ export function useHomeAudio(onNavigate: (path: string) => void) {
       returnTitleSeRef,
       gopherTalkSeRef,
     },
+    audioError,
     playGopherTalk,
     playModalCancel,
     playModalOpen,
