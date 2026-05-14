@@ -17,6 +17,13 @@ const player = {
   todayCp: 320,
 };
 
+const guild = {
+  name: "TypeScript Guild",
+  icon: "TS",
+  rank: "Member",
+  accent: "#3178c6",
+};
+
 const navItems = [
   { label: "WAR MAP", caption: "BATTLE FRONT", path: "/war", accent: "#ff5f56" },
   { label: "GUILD BASE", caption: "COMMUNITY HQ", path: "/guild", accent: "#00f5ff" },
@@ -126,7 +133,7 @@ export function Home({ onNavigate }: HomeProps) {
           gap: "20px",
         }}
       >
-        <HomeHud player={player} onReturnTitle={openReturnTitleDialog} />
+        <HomeHud guild={guild} player={player} onReturnTitle={openReturnTitleDialog} />
 
         <section
           aria-label="Character placement area"

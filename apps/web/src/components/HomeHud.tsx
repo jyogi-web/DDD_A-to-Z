@@ -10,6 +10,13 @@ interface PlayerSummary {
   todayCp: number;
 }
 
+interface GuildSummary {
+  name: string;
+  icon: string;
+  rank: string;
+  accent: string;
+}
+
 const panelVariants: Variants = {
   hidden: { opacity: 0, y: -14 },
   visible: {
@@ -107,10 +114,88 @@ function TitleButton({ onClick }: { onClick: () => void }) {
   );
 }
 
+function GuildEmblem({ accent, icon }: { accent: string; icon: string }) {
+  return (
+    <div
+      aria-hidden="true"
+      style={{
+        width: "48px",
+        height: "48px",
+        display: "grid",
+        placeItems: "center",
+        flex: "0 0 auto",
+        border: `3px solid ${accent}`,
+        borderBottomColor: "#035a72",
+        borderRightColor: "#035a72",
+        background:
+          "linear-gradient(135deg, rgba(49,120,198,0.34), rgba(255,217,102,0.16)), #061326",
+        boxShadow: `0 0 0 2px rgba(0,0,0,0.78), inset 0 0 16px ${accent}44, 3px 3px 0 rgba(0,0,0,0.42)`,
+        color: "#ffd966",
+        fontSize: "1rem",
+        lineHeight: 1,
+        textShadow: "2px 2px 0 rgba(0,0,0,0.72)",
+      }}
+    >
+      {icon}
+    </div>
+  );
+}
+
+function GuildMembership({ guild }: { guild: GuildSummary }) {
+  return (
+    <HudPanel>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+        }}
+      >
+        <GuildEmblem accent={guild.accent} icon={guild.icon} />
+        <div style={{ minWidth: 0 }}>
+          <div
+            style={{
+              color: "rgba(244, 236, 208, 0.62)",
+              fontSize: "0.58rem",
+              lineHeight: 1.5,
+              marginBottom: "5px",
+            }}
+          >
+            GUILD
+          </div>
+          <div
+            style={{
+              color: guild.accent,
+              fontSize: "clamp(0.74rem, 1.7vw, 0.92rem)",
+              lineHeight: 1.45,
+              overflowWrap: "anywhere",
+            }}
+          >
+            {guild.name}
+          </div>
+          <div
+            style={{
+              color: "rgba(255, 248, 215, 0.72)",
+              fontFamily: '"DotGothic16", monospace',
+              fontSize: "0.72rem",
+              lineHeight: 1.5,
+              marginTop: "2px",
+            }}
+          >
+            {guild.rank}
+          </div>
+        </div>
+      </div>
+    </HudPanel>
+  );
+}
+
 export function HomeHud({
+  guild,
   onReturnTitle,
   player,
 }: {
+  guild: GuildSummary;
   onReturnTitle: () => void;
   player: PlayerSummary;
 }) {
@@ -148,6 +233,8 @@ export function HomeHud({
             <LabelValue label="LEVEL" value={`LV.${player.level}`} />
           </div>
         </HudPanel>
+
+        <GuildMembership guild={guild} />
 
         <TitleButton onClick={onReturnTitle} />
       </div>
