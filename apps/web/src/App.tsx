@@ -38,12 +38,14 @@ function App() {
     playModalCancel,
     playModalConfirm,
     playModalOpen,
+    playTitleStart,
     toggleBgm,
   } = useTitleAudio();
   const [isDay, setIsDay] = useState(() => isDaytime(new Date().getHours()));
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [isInitialProfileCompleted, setIsInitialProfileCompleted] = useState(false);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
 
   // 毎分チェックして日没・夜明けをリアルタイム反映
   useEffect(() => {
@@ -74,7 +76,13 @@ function App() {
       setIsLogoutDialogOpen(false);
     }
   };
-  const handleStart = () => {
+  const handleStart = async () => {
+    if (isStarting) {
+      return;
+    }
+
+    setIsStarting(true);
+    await playTitleStart();
     navigate(isInitialProfileCompleted ? "/home" : "/profile");
   };
   const closeLogoutDialog = () => setIsLogoutDialogOpen(false);
@@ -132,6 +140,12 @@ function App() {
       <audio
         ref={audioRefs.modalConfirmSeRef}
         src="/SE/modal-confirm.wav"
+        preload="auto"
+        aria-hidden="true"
+      />
+      <audio
+        ref={audioRefs.titleStartSeRef}
+        src="/SE/title-start.wav"
         preload="auto"
         aria-hidden="true"
       />
@@ -290,6 +304,7 @@ function App() {
             onLogin={handleLogin}
             onLogoutClick={() => setIsLogoutDialogOpen(true)}
             onStart={handleStart}
+            isStarting={isStarting}
           />
         </motion.div>
 

@@ -5,6 +5,7 @@ export function useTitleAudio() {
   const confirmModalSeRef = useRef<HTMLAudioElement | null>(null);
   const modalCancelSeRef = useRef<HTMLAudioElement | null>(null);
   const modalConfirmSeRef = useRef<HTMLAudioElement | null>(null);
+  const titleStartSeRef = useRef<HTMLAudioElement | null>(null);
   const [isBgmMuted, setIsBgmMuted] = useState(false);
 
   useEffect(() => {
@@ -68,6 +69,32 @@ export function useTitleAudio() {
     });
   }, []);
 
+  const playSeUntilEnd = useCallback((audio: HTMLAudioElement | null) => {
+    if (!audio) {
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve) => {
+      let timeoutId: number | undefined;
+
+      const finish = () => {
+        audio.removeEventListener("ended", finish);
+        audio.removeEventListener("error", finish);
+        if (timeoutId !== undefined) {
+          window.clearTimeout(timeoutId);
+        }
+        resolve();
+      };
+
+      audio.currentTime = 0;
+      audio.addEventListener("ended", finish, { once: true });
+      audio.addEventListener("error", finish, { once: true });
+      timeoutId = window.setTimeout(finish, 700);
+
+      void audio.play().catch(finish);
+    });
+  }, []);
+
   const toggleBgm = useCallback(() => {
     setIsBgmMuted((current) => {
       const shouldMute = !current;
@@ -92,17 +119,23 @@ export function useTitleAudio() {
     playSe(confirmModalSeRef.current);
   }, [playSe]);
 
+  const playTitleStart = useCallback(() => {
+    return playSeUntilEnd(titleStartSeRef.current);
+  }, [playSeUntilEnd]);
+
   return {
     audioRefs: {
       titleBgmRef,
       confirmModalSeRef,
       modalCancelSeRef,
       modalConfirmSeRef,
+      titleStartSeRef,
     },
     isBgmMuted,
     playModalCancel,
     playModalConfirm,
     playModalOpen,
+    playTitleStart,
     toggleBgm,
   };
 }

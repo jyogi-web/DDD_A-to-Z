@@ -3,12 +3,19 @@ import { GitHubLoginButton } from "./GitHubLoginButton";
 
 interface TitleActionsProps {
   isLoggedIn: boolean;
+  isStarting?: boolean;
   onLogin: () => void;
   onLogoutClick: () => void;
-  onStart: () => void;
+  onStart: () => void | Promise<void>;
 }
 
-export function TitleActions({ isLoggedIn, onLogin, onLogoutClick, onStart }: TitleActionsProps) {
+export function TitleActions({
+  isLoggedIn,
+  isStarting = false,
+  onLogin,
+  onLogoutClick,
+  onStart,
+}: TitleActionsProps) {
   if (!isLoggedIn) {
     return <GitHubLoginButton onClick={onLogin} />;
   }
@@ -25,6 +32,7 @@ export function TitleActions({ isLoggedIn, onLogin, onLogoutClick, onStart }: Ti
     >
       <motion.button
         type="button"
+        disabled={isStarting}
         onClick={onStart}
         whileHover={{ scale: 1.04 }}
         whileTap={{ y: 3, scale: 0.98 }}
@@ -37,8 +45,9 @@ export function TitleActions({ isLoggedIn, onLogin, onLogoutClick, onStart }: Ti
           border: "3px solid #0a0a0a",
           boxShadow: "4px 4px 0 #0a0a0a",
           color: "#0a0a0a",
-          cursor: "pointer",
+          cursor: isStarting ? "wait" : "pointer",
           letterSpacing: "0.08em",
+          opacity: isStarting ? 0.78 : 1,
         }}
       >
         START
