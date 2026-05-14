@@ -189,6 +189,10 @@ func classifyTransportError(err error) error {
 }
 
 func isRateLimited(response *http.Response, message string) bool {
+	if response.StatusCode == http.StatusTooManyRequests {
+		return true
+	}
+
 	statusCanRateLimit := response.StatusCode == http.StatusForbidden || response.StatusCode == http.StatusTooManyRequests
 	if !statusCanRateLimit {
 		return false

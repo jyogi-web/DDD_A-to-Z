@@ -92,6 +92,12 @@ func TestRepositoryClientErrors(t *testing.T) {
 			body:   `{"message":"You have exceeded a secondary rate limit"}`,
 			kind:   githubapp.ErrorKindRateLimited,
 		},
+		{
+			name:   "too many requests without rate limit headers",
+			status: http.StatusTooManyRequests,
+			body:   `{"message":"Too Many Requests"}`,
+			kind:   githubapp.ErrorKindRateLimited,
+		},
 		{name: "token invalid", status: http.StatusUnauthorized, body: `{"message":"Bad credentials"}`, kind: githubapp.ErrorKindTokenInvalid},
 		{name: "permission denied", status: http.StatusForbidden, body: `{"message":"Resource not accessible"}`, kind: githubapp.ErrorKindPermissionDenied},
 		{name: "not found", status: http.StatusNotFound, body: `{"message":"Not Found"}`, kind: githubapp.ErrorKindPermissionDeniedOrNotFound},
