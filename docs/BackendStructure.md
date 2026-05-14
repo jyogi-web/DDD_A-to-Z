@@ -22,14 +22,14 @@ services/api/
     ├── domain/                       # Entity / Value Object / Domain Service
     │   ├── user/                     # User、GitHubAccount
     │   ├── repositoryanalysis/       # リポジトリ解析のドメイン概念
-    │   ├── cp/                       # Contribution Point のルール
+    │   ├── contributionpoint/                       # ContributionPoint のルール
     │   └── guild/                    # Guild、ランキング、所属状態
     ├── application/                  # Use Case / Port
     │   ├── auth/                     # GitHubログイン use case
     │   ├── user/
     │   ├── github/
     │   ├── repositoryanalysis/
-    │   ├── cp/
+    │   ├── contributionpoint/
     │   ├── guild/
     │   └── mypage/
     ├── infrastructure/               # 外部I/Oの実装
@@ -85,7 +85,7 @@ API サーバープロセスの入口。ここでは logger、config、repositor
 例:
 
 - `domain/user`: アプリ内 User と GitHubAccount の関係
-- `domain/cp`: Contribution Point の計算ルール
+- `domain/contributionpoint`: ContributionPoint の計算ルール
 - `domain/guild`: 言語ギルド、ランキング、所属状態のルール
 - `domain/repositoryanalysis`: リポジトリ解析結果のドメイン概念
 

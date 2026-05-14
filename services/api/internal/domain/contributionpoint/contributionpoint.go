@@ -1,5 +1,5 @@
-// Package cp owns Contribution Point account and ledger rules.
-package cp
+// Package contributionpoint owns ContributionPoint account and ledger rules.
+package contributionpoint
 
 import (
 	"errors"
@@ -40,30 +40,30 @@ func NewLedgerEntry(
 	createdAt time.Time,
 ) (LedgerEntry, error) {
 	if err := validateRequiredStrings(
-		requiredString{name: "cp ledger id", value: id},
+		requiredString{name: "contribution point ledger id", value: id},
 		requiredString{name: "user id", value: string(userID)},
-		requiredString{name: "cp reason", value: reason},
-		requiredString{name: "cp source type", value: sourceType},
-		requiredString{name: "cp source id", value: sourceID},
+		requiredString{name: "contribution point reason", value: reason},
+		requiredString{name: "contribution point source type", value: sourceType},
+		requiredString{name: "contribution point source id", value: sourceID},
 	); err != nil {
 		return LedgerEntry{}, err
 	}
 	if amount == 0 {
-		return LedgerEntry{}, errors.New("cp amount must not be zero")
+		return LedgerEntry{}, errors.New("contribution point amount must not be zero")
 	}
 
 	switch entryType {
 	case EntryTypeEarn:
 		if amount < 0 {
-			return LedgerEntry{}, errors.New("earn cp amount must be positive")
+			return LedgerEntry{}, errors.New("earn contribution point amount must be positive")
 		}
 	case EntryTypeSpend:
 		if amount > 0 {
-			return LedgerEntry{}, errors.New("spend cp amount must be negative")
+			return LedgerEntry{}, errors.New("spend contribution point amount must be negative")
 		}
 	case EntryTypeAdjust:
 	default:
-		return LedgerEntry{}, errors.New("cp entry type is invalid")
+		return LedgerEntry{}, errors.New("contribution point entry type is invalid")
 	}
 
 	return LedgerEntry{

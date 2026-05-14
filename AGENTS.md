@@ -27,14 +27,14 @@ services/api/
     ├── domain/                       # Entity / Value Object / Domain Service
     │   ├── user/
     │   ├── repositoryanalysis/
-    │   ├── cp/
+    │   ├── contributionpoint/
     │   └── guild/
     ├── application/                  # Use Case / Port
     │   ├── auth/
     │   ├── user/
     │   ├── github/
     │   ├── repositoryanalysis/
-    │   ├── cp/
+    │   ├── contributionpoint/
     │   ├── guild/
     │   └── mypage/
     ├── infrastructure/               # 外部I/Oと技術詳細

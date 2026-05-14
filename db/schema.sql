@@ -23,14 +23,14 @@ CREATE TABLE sessions (
 CREATE INDEX sessions_user_id_idx ON sessions(user_id);
 CREATE INDEX sessions_expires_at_idx ON sessions(expires_at);
 
-CREATE TABLE cp_accounts (
+CREATE TABLE contribution_point_accounts (
   user_id TEXT PRIMARY KEY REFERENCES users(id),
   balance BIGINT NOT NULL DEFAULT 0 CHECK (balance >= 0),
   created_at TIMESTAMPTZ NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL
 );
 
-CREATE TABLE cp_ledger (
+CREATE TABLE contribution_point_ledger (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id),
   amount BIGINT NOT NULL CHECK (amount <> 0),
@@ -47,16 +47,16 @@ CREATE TABLE cp_ledger (
   )
 );
 
-CREATE INDEX cp_ledger_user_id_created_at_idx ON cp_ledger(user_id, created_at DESC);
-CREATE INDEX cp_ledger_source_idx ON cp_ledger(source_type, source_id);
+CREATE INDEX contribution_point_ledger_user_id_created_at_idx ON contribution_point_ledger(user_id, created_at DESC);
+CREATE INDEX contribution_point_ledger_source_idx ON contribution_point_ledger(source_type, source_id);
 
-CREATE FUNCTION reject_nonzero_cp_account_insert()
+CREATE FUNCTION reject_nonzero_contribution_point_account_insert()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
 BEGIN
   IF NEW.balance <> 0 THEN
-    RAISE EXCEPTION 'cp account must start with zero balance'
+    RAISE EXCEPTION 'contribution point account must start with zero balance'
       USING ERRCODE = '23514';
   END IF;
 
@@ -64,19 +64,19 @@ BEGIN
 END;
 $$;
 
-CREATE TRIGGER cp_accounts_reject_nonzero_insert
-BEFORE INSERT ON cp_accounts
+CREATE TRIGGER contribution_point_accounts_reject_nonzero_insert
+BEFORE INSERT ON contribution_point_accounts
 FOR EACH ROW
-EXECUTE FUNCTION reject_nonzero_cp_account_insert();
+EXECUTE FUNCTION reject_nonzero_contribution_point_account_insert();
 
-CREATE FUNCTION reject_direct_cp_account_balance_update()
+CREATE FUNCTION reject_direct_contribution_point_account_balance_update()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
 BEGIN
   IF OLD.balance IS DISTINCT FROM NEW.balance
     AND pg_trigger_depth() < 2 THEN
-    RAISE EXCEPTION 'cp account balance can only be updated from cp_ledger'
+    RAISE EXCEPTION 'contribution point account balance can only be updated from contribution_point_ledger'
       USING ERRCODE = '23514';
   END IF;
 
@@ -84,12 +84,12 @@ BEGIN
 END;
 $$;
 
-CREATE TRIGGER cp_accounts_reject_direct_balance_update
-BEFORE UPDATE OF balance ON cp_accounts
+CREATE TRIGGER contribution_point_accounts_reject_direct_balance_update
+BEFORE UPDATE OF balance ON contribution_point_accounts
 FOR EACH ROW
-EXECUTE FUNCTION reject_direct_cp_account_balance_update();
+EXECUTE FUNCTION reject_direct_contribution_point_account_balance_update();
 
-CREATE FUNCTION apply_cp_ledger_entry()
+CREATE FUNCTION apply_contribution_point_ledger_entry()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
@@ -98,21 +98,21 @@ DECLARE
 BEGIN
   SELECT balance + NEW.amount
   INTO next_balance
-  FROM cp_accounts
+  FROM contribution_point_accounts
   WHERE user_id = NEW.user_id
   FOR UPDATE;
 
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'cp account not found for user_id %', NEW.user_id
+    RAISE EXCEPTION 'contribution point account not found for user_id %', NEW.user_id
       USING ERRCODE = '23503';
   END IF;
 
   IF next_balance < 0 THEN
-    RAISE EXCEPTION 'cp balance cannot be negative for user_id %', NEW.user_id
+    RAISE EXCEPTION 'contribution point balance cannot be negative for user_id %', NEW.user_id
       USING ERRCODE = '23514';
   END IF;
 
-  UPDATE cp_accounts
+  UPDATE contribution_point_accounts
   SET balance = next_balance,
       updated_at = NEW.created_at
   WHERE user_id = NEW.user_id;
@@ -122,27 +122,27 @@ BEGIN
 END;
 $$;
 
-CREATE TRIGGER cp_ledger_apply_before_insert
-BEFORE INSERT ON cp_ledger
+CREATE TRIGGER contribution_point_ledger_apply_before_insert
+BEFORE INSERT ON contribution_point_ledger
 FOR EACH ROW
-EXECUTE FUNCTION apply_cp_ledger_entry();
+EXECUTE FUNCTION apply_contribution_point_ledger_entry();
 
-CREATE FUNCTION reject_cp_ledger_mutation()
+CREATE FUNCTION reject_contribution_point_ledger_mutation()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
 BEGIN
-  RAISE EXCEPTION 'cp_ledger is append-only'
+  RAISE EXCEPTION 'contribution_point_ledger is append-only'
     USING ERRCODE = '23514';
 END;
 $$;
 
-CREATE TRIGGER cp_ledger_reject_update
-BEFORE UPDATE ON cp_ledger
+CREATE TRIGGER contribution_point_ledger_reject_update
+BEFORE UPDATE ON contribution_point_ledger
 FOR EACH ROW
-EXECUTE FUNCTION reject_cp_ledger_mutation();
+EXECUTE FUNCTION reject_contribution_point_ledger_mutation();
 
-CREATE TRIGGER cp_ledger_reject_delete
-BEFORE DELETE ON cp_ledger
+CREATE TRIGGER contribution_point_ledger_reject_delete
+BEFORE DELETE ON contribution_point_ledger
 FOR EACH ROW
-EXECUTE FUNCTION reject_cp_ledger_mutation();
+EXECUTE FUNCTION reject_contribution_point_ledger_mutation();

@@ -65,11 +65,11 @@ func TestAuthStoreFindOrCreateByGitHub(t *testing.T) {
 		}
 
 		var balance int64
-		if err := tx.WithContext(ctx).Raw("SELECT balance FROM cp_accounts WHERE user_id = ?", wantUserID).Scan(&balance).Error; err != nil {
-			t.Fatalf("cp_accounts の初期残高取得でエラーが発生しました: %v", err)
+		if err := tx.WithContext(ctx).Raw("SELECT balance FROM contribution_point_accounts WHERE user_id = ?", wantUserID).Scan(&balance).Error; err != nil {
+			t.Fatalf("contribution_point_accounts の初期残高取得でエラーが発生しました: %v", err)
 		}
 		if balance != 0 {
-			t.Fatalf("cp_accounts.balance = %d, 期待値 0", balance)
+			t.Fatalf("contribution_point_accounts.balance = %d, 期待値 0", balance)
 		}
 	})
 }
@@ -181,10 +181,10 @@ func verifyAuthSchema(db *gorm.DB) error {
 	if err := db.Exec("SELECT 1 FROM users LIMIT 1").Error; err != nil {
 		return err
 	}
-	if err := db.Exec("SELECT 1 FROM cp_accounts LIMIT 1").Error; err != nil {
+	if err := db.Exec("SELECT 1 FROM contribution_point_accounts LIMIT 1").Error; err != nil {
 		return err
 	}
-	return db.Exec("SELECT 1 FROM cp_ledger LIMIT 1").Error
+	return db.Exec("SELECT 1 FROM contribution_point_ledger LIMIT 1").Error
 }
 
 func uniqueGitHubID() int64 {
@@ -194,7 +194,7 @@ func uniqueGitHubID() int64 {
 func isMissingAuthSchemaError(err error) bool {
 	message := err.Error()
 	return strings.Contains(message, `relation "users" does not exist`) ||
-		strings.Contains(message, `relation "cp_accounts" does not exist`) ||
-		strings.Contains(message, `relation "cp_ledger" does not exist`) ||
+		strings.Contains(message, `relation "contribution_point_accounts" does not exist`) ||
+		strings.Contains(message, `relation "contribution_point_ledger" does not exist`) ||
 		strings.Contains(message, "SQLSTATE 42P01")
 }
