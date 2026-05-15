@@ -1,5 +1,6 @@
 import { useState, useMemo, type ReactNode } from "react";
 import { motion } from "framer-motion";
+import { BACK_NAVIGATION_SE_SRC, useBackNavigationSe } from "../hooks/useBackNavigationSe";
 
 interface MyPageProps {
   onNavigate: (path: string) => void;
@@ -227,6 +228,7 @@ function ProgressBarFill({
 
 export function MyPage({ onNavigate }: MyPageProps) {
   const contribs = useMemo(() => generateContributions(), []);
+  const { backNavigationSeRef, navigateBackWithSe } = useBackNavigationSe(onNavigate);
   const [tooltip, setTooltip] = useState<{
     x: number;
     y: number;
@@ -273,6 +275,12 @@ export function MyPage({ onNavigate }: MyPageProps) {
         color: "#e8e8d0",
       }}
     >
+      <audio
+        ref={backNavigationSeRef}
+        src={BACK_NAVIGATION_SE_SRC}
+        preload="none"
+        aria-hidden="true"
+      />
       {/* City silhouette */}
       <div
         aria-hidden="true"
@@ -325,7 +333,7 @@ export function MyPage({ onNavigate }: MyPageProps) {
           </span>
         </div>
         <button
-          onClick={() => onNavigate("/home")}
+          onClick={() => void navigateBackWithSe("/home")}
           style={{
             fontFamily: '"Press Start 2P", monospace',
             fontSize: "0.72rem",

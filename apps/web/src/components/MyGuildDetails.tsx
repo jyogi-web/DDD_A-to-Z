@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
+import { BACK_NAVIGATION_SE_SRC, useBackNavigationSe } from "../hooks/useBackNavigationSe";
 import { steppedEase } from "../lib/animationUtils";
-import { GuildBgm } from "./GuildBgm";
 import styles from "./MyGuildDetails.module.css";
 
 interface MyGuildDetailsProps {
@@ -78,6 +78,7 @@ const MEMBERS: GuildMember[] = [
 const panelTransition = { duration: 0.34, ease: steppedEase(6) };
 
 export function MyGuildDetails({ onNavigate }: MyGuildDetailsProps) {
+  const { backNavigationSeRef, navigateBackWithSe } = useBackNavigationSe(onNavigate);
   const stats = [
     { label: "GUILD LEVEL", value: `LV.${MY_GUILD.level}` },
     { label: "TOTAL CP", value: MY_GUILD.totalCp.toLocaleString() },
@@ -86,7 +87,12 @@ export function MyGuildDetails({ onNavigate }: MyGuildDetailsProps) {
 
   return (
     <main className={styles.main}>
-      <GuildBgm />
+      <audio
+        ref={backNavigationSeRef}
+        src={BACK_NAVIGATION_SE_SRC}
+        preload="none"
+        aria-hidden="true"
+      />
 
       <div className={styles.shell}>
         <div className={styles.topBar}>
@@ -95,7 +101,7 @@ export function MyGuildDetails({ onNavigate }: MyGuildDetailsProps) {
             type="button"
             whileHover={{ y: -2, scale: 1.02 }}
             whileTap={{ y: 2, scale: 0.98 }}
-            onClick={() => onNavigate("/guild")}
+            onClick={() => void navigateBackWithSe("/guild")}
           >
             &lt; GUILD BASE
           </motion.button>

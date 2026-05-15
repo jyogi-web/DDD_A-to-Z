@@ -1,13 +1,17 @@
 import { AnimatePresence, motion, type Variants } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AUDIO_ASSETS } from "../features/audio/audioAssets";
+import { useAudioSettings } from "../features/audio/useAudioSettings";
+import { BACK_NAVIGATION_SE_SRC, useBackNavigationSe } from "../hooks/useBackNavigationSe";
 import { steppedEase } from "../lib/animationUtils";
-import { GuildBgm } from "./GuildBgm";
 
 interface GuildDashboardProps {
   onNavigate: (path: string) => void;
 }
 
 type GuildTab = "activity" | "rankings";
+
+const GUILD_NAV_SE_TIMEOUT_MS = 500;
 
 interface ActivityLog {
   id: number;
@@ -194,10 +198,51 @@ function GuildBadge() {
 }
 
 function GuildNavigation({ onNavigate }: { onNavigate: (path: string) => void }) {
+  const { isSeEnabled } = useAudioSettings();
+  const guildNavSelectSeRef = useRef<HTMLAudioElement | null>(null);
   const destinations = [
     { label: "GUILD DETAILS", path: "/guild/details" },
     { label: "GUILD TOWN", path: "/guild/town" },
   ];
+
+  const playSelectSeUntilEnd = useCallback(() => {
+    const audio = guildNavSelectSeRef.current;
+    if (!audio || !isSeEnabled) {
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve) => {
+      let timeoutId: number | undefined;
+
+      const finish = () => {
+        audio.removeEventListener("ended", finish);
+        audio.removeEventListener("error", finish);
+        if (timeoutId !== undefined) {
+          window.clearTimeout(timeoutId);
+        }
+        resolve();
+      };
+
+      if (audio.preload === "none" && audio.readyState === HTMLMediaElement.HAVE_NOTHING) {
+        audio.load();
+      }
+
+      audio.currentTime = 0;
+      audio.addEventListener("ended", finish, { once: true });
+      audio.addEventListener("error", finish, { once: true });
+      timeoutId = window.setTimeout(finish, GUILD_NAV_SE_TIMEOUT_MS);
+
+      void audio.play().catch(finish);
+    });
+  }, [isSeEnabled]);
+
+  const navigateWithSe = useCallback(
+    async (path: string) => {
+      await playSelectSeUntilEnd();
+      onNavigate(path);
+    },
+    [onNavigate, playSelectSeUntilEnd],
+  );
 
   return (
     <motion.nav
@@ -217,13 +262,19 @@ function GuildNavigation({ onNavigate }: { onNavigate: (path: string) => void })
         transform: "translateX(-50%)",
       }}
     >
+      <audio
+        ref={guildNavSelectSeRef}
+        src={AUDIO_ASSETS.se.homeNavSelect}
+        preload="none"
+        aria-hidden="true"
+      />
       {destinations.map((destination) => (
         <motion.button
           key={destination.path}
           type="button"
           whileHover={{ y: -3, scale: 1.02 }}
           whileTap={{ y: 2, scale: 0.98 }}
-          onClick={() => onNavigate(destination.path)}
+          onClick={() => void navigateWithSe(destination.path)}
           style={{
             minHeight: "clamp(46px, 7.5vh, 66px)",
             border: "3px solid rgba(244, 236, 208, 0.72)",
@@ -280,8 +331,6 @@ function ActivityLogPanel({ logs }: { logs: ActivityLog[] }) {
         overflow: "hidden",
       }}
     >
-      <GuildBgm />
-
       <div
         style={{
           display: "flex",
@@ -433,6 +482,7 @@ function RankingsPanel() {
 export function GuildDashboard({ onNavigate }: GuildDashboardProps) {
   const [activeTab, setActiveTab] = useState<GuildTab>("activity");
   const [logs, setLogs] = useState<ActivityLog[]>(INITIAL_LOGS);
+  const { backNavigationSeRef, navigateBackWithSe } = useBackNavigationSe(onNavigate);
 
   useEffect(() => {
     let nextId = INITIAL_LOGS[0].id + 1;
@@ -462,6 +512,12 @@ export function GuildDashboard({ onNavigate }: GuildDashboardProps) {
         color: "#f4ecd0",
       }}
     >
+      <audio
+        ref={backNavigationSeRef}
+        src={BACK_NAVIGATION_SE_SRC}
+        preload="none"
+        aria-hidden="true"
+      />
       <div
         style={{
           position: "absolute",
@@ -580,7 +636,7 @@ export function GuildDashboard({ onNavigate }: GuildDashboardProps) {
 
       <button
         type="button"
-        onClick={() => onNavigate("/home")}
+        onClick={() => void navigateBackWithSe("/home")}
         style={{
           position: "fixed",
           top: "clamp(14px, 2.2vw, 28px)",
