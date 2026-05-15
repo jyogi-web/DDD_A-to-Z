@@ -17,6 +17,8 @@ type InventoryItemType = "tent" | "bonfire";
 interface InventoryItem {
   type: InventoryItemType;
   name: string;
+  title: string;
+  description: string;
   count: number;
   src: string;
   minMapWidth: number;
@@ -28,6 +30,8 @@ interface PlacedItem {
   id: string;
   type: InventoryItemType;
   name: string;
+  title: string;
+  description: string;
   src: string;
   x: number;
   y: number;
@@ -38,6 +42,8 @@ const INITIAL_INVENTORY: InventoryItem[] = [
   {
     type: "tent",
     name: "TENT",
+    title: "旅人のテント",
+    description: "ギルドの仲間が遠征前に集う簡易拠点。休息と作戦会議に使われる。",
     count: 2,
     src: "/town/tent.png",
     minMapWidth: 210,
@@ -47,6 +53,8 @@ const INITIAL_INVENTORY: InventoryItem[] = [
   {
     type: "bonfire",
     name: "BONFIRE",
+    title: "団らんの焚き火",
+    description: "夜のギルドタウンを照らす小さな火。仲間の士気をじんわり温める。",
     count: 3,
     src: "/town/bonfire.png",
     minMapWidth: 92,
@@ -98,6 +106,7 @@ export function GuildTown({
   const [inventory, setInventory] = useState<InventoryItem[]>(INITIAL_INVENTORY);
   const [placedItems, setPlacedItems] = useState<PlacedItem[]>([]);
   const [inventoryVisible, setInventoryVisible] = useState(true);
+  const [selectedPlacedItemId, setSelectedPlacedItemId] = useState<string | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const inventoryRef = useRef<HTMLDivElement>(null);
   const mapX = useMotionValue(0);
@@ -108,6 +117,8 @@ export function GuildTown({
     top: Math.min(0, viewport.height - viewport.height * 2 * scale),
     bottom: 0,
   };
+  const selectedPlacedItem =
+    placedItems.find((placedItem) => placedItem.id === selectedPlacedItemId) ?? null;
 
   useEffect(() => {
     const updateViewport = () => {
@@ -190,6 +201,8 @@ export function GuildTown({
         id: `${item.type}-${Date.now()}-${currentItems.length}`,
         type: item.type,
         name: item.name,
+        title: item.title,
+        description: item.description,
         src: item.src,
         x: dropPoint.x,
         y: dropPoint.y,
@@ -218,6 +231,7 @@ export function GuildTown({
         placedItem.id === item.id ? { ...placedItem, x: dropPoint.x, y: dropPoint.y } : placedItem,
       ),
     );
+    setSelectedPlacedItemId(item.id);
   };
 
   return (
@@ -387,7 +401,9 @@ export function GuildTown({
             dragElastic={0}
             dragMomentum={false}
             onPointerDown={stopNestedDrag}
+            onClick={() => setSelectedPlacedItemId(item.id)}
             onDragEnd={(event, info) => handlePlacedItemDragEnd(item, event, info)}
+            whileHover={{ scale: 1.02 }}
             whileDrag={{ scale: 1.05, zIndex: 12 }}
             style={{
               position: "absolute",
@@ -396,7 +412,15 @@ export function GuildTown({
               width: item.width,
               height: "auto",
               cursor: "grab",
-              filter: "drop-shadow(10px 14px 0 rgba(0,0,0,0.3))",
+              outline:
+                selectedPlacedItemId === item.id
+                  ? "3px solid rgba(255, 217, 102, 0.82)"
+                  : "3px solid transparent",
+              outlineOffset: "4px",
+              filter:
+                selectedPlacedItemId === item.id
+                  ? "drop-shadow(10px 14px 0 rgba(0,0,0,0.3)) drop-shadow(0 0 12px rgba(255,217,102,0.72))"
+                  : "drop-shadow(10px 14px 0 rgba(0,0,0,0.3))",
               touchAction: "none",
               zIndex: 8,
             }}
@@ -665,6 +689,127 @@ export function GuildTown({
           );
         })}
       </motion.aside>
+
+      {selectedPlacedItem && (
+        <motion.section
+          key={selectedPlacedItem.id}
+          initial={{ opacity: 0, y: 18, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 12, scale: 0.98 }}
+          transition={{ duration: 0.28, ease: steppedEase(6) }}
+          aria-live="polite"
+          style={{
+            position: "fixed",
+            left: "50%",
+            bottom: "calc(env(safe-area-inset-bottom, 0px) + clamp(14px, 2vw, 24px))",
+            zIndex: 9,
+            display: "grid",
+            gridTemplateColumns: "76px minmax(0, 1fr) auto",
+            width: "min(calc(100vw - 210px), 720px)",
+            minHeight: "96px",
+            alignItems: "center",
+            gap: "14px",
+            transform: "translateX(-50%)",
+            border: "3px solid rgba(255, 248, 215, 0.82)",
+            borderBottomColor: "rgba(55, 44, 35, 0.98)",
+            borderRightColor: "rgba(55, 44, 35, 0.98)",
+            background:
+              "linear-gradient(180deg, rgba(4, 10, 22, 0.94), rgba(3, 7, 14, 0.9))",
+            boxShadow:
+              "0 0 0 2px rgba(0,0,0,0.76), 7px 7px 0 rgba(0,0,0,0.36), inset 0 0 22px rgba(116,247,161,0.09)",
+            color: "#fff8d7",
+            padding: "12px 14px",
+            backdropFilter: "blur(2px)",
+          }}
+        >
+          <div
+            aria-hidden="true"
+            style={{
+              display: "grid",
+              width: "76px",
+              height: "68px",
+              placeItems: "center",
+              border: "2px solid rgba(116, 247, 161, 0.58)",
+              background: "rgba(1, 12, 24, 0.72)",
+              boxShadow: "inset 0 0 14px rgba(0,0,0,0.68)",
+            }}
+          >
+            <img
+              className="pixelated"
+              src={selectedPlacedItem.src}
+              alt=""
+              draggable={false}
+              style={{
+                display: "block",
+                maxWidth: "58px",
+                maxHeight: "54px",
+                filter: "drop-shadow(4px 5px 0 rgba(0,0,0,0.34))",
+              }}
+            />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <p
+              style={{
+                margin: "0 0 6px",
+                color: "#74f7a1",
+                fontSize: "0.52rem",
+                lineHeight: 1.4,
+                textShadow: "2px 2px 0 rgba(0,0,0,0.72)",
+              }}
+            >
+              BUILDING DATA
+            </p>
+            <h2
+              style={{
+                margin: "0 0 7px",
+                color: "#ffd966",
+                fontSize: "clamp(0.72rem, 1.6vw, 0.95rem)",
+                lineHeight: 1.5,
+                textShadow: "2px 2px 0 rgba(0,0,0,0.72)",
+              }}
+            >
+              {selectedPlacedItem.title}
+            </h2>
+            <p
+              style={{
+                margin: 0,
+                color: "#f4ecd0",
+                fontFamily: '"DotGothic16", monospace',
+                fontSize: "clamp(0.78rem, 1.45vw, 0.98rem)",
+                lineHeight: 1.45,
+              }}
+            >
+              {selectedPlacedItem.description}
+            </p>
+          </div>
+          <motion.button
+            type="button"
+            aria-label="Close building info"
+            onClick={() => setSelectedPlacedItemId(null)}
+            whileHover={{ y: -2, backgroundColor: "rgba(255, 217, 102, 0.18)" }}
+            whileTap={{ y: 1, scale: 0.96 }}
+            style={{
+              width: "38px",
+              height: "38px",
+              alignSelf: "start",
+              border: "2px solid rgba(255, 217, 102, 0.78)",
+              borderBottomColor: "rgba(96, 62, 22, 0.95)",
+              borderRightColor: "rgba(96, 62, 22, 0.95)",
+              background: "rgba(3, 10, 24, 0.78)",
+              boxShadow: "0 0 0 2px rgba(0,0,0,0.62)",
+              color: "#fff8d7",
+              cursor: "pointer",
+              fontFamily: "inherit",
+              fontSize: "0.82rem",
+              lineHeight: 1,
+              padding: 0,
+              textShadow: "2px 2px 0 rgba(0,0,0,0.72)",
+            }}
+          >
+            x
+          </motion.button>
+        </motion.section>
+      )}
 
       <div
         className="absolute right-6 z-[6] flex flex-col gap-3"
