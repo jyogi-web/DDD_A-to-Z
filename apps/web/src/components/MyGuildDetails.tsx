@@ -117,11 +117,7 @@ export function MyGuildDetails({ onNavigate }: MyGuildDetailsProps) {
             aria-labelledby="my-guild-title"
           >
             <div className={styles.identity}>
-              <div
-                className={styles.emblem}
-                aria-hidden="true"
-                style={{ color: MY_GUILD.color, borderColor: "rgba(255, 217, 102, 0.9)" }}
-              >
+              <div className={styles.emblem} aria-hidden="true" style={{ color: MY_GUILD.color }}>
                 {MY_GUILD.icon}
               </div>
               <div>

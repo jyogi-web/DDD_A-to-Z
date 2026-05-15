@@ -9,6 +9,7 @@ import { HomeBgm } from "./components/HomeBgm.tsx";
 import { InitialProfile } from "./components/InitialProfile.tsx";
 import { MyPage } from "./components/MyPage.tsx";
 import { MyGuildDetails } from "./components/MyGuildDetails.tsx";
+import { PATHS } from "./constants/paths.ts";
 import { fetchMe } from "./features/auth/api.ts";
 import { markInitialProfileCompleted } from "./features/profile/initialProfile.ts";
 
@@ -16,10 +17,10 @@ export function AppRoutes() {
   const navigate = useNavigate();
   const location = useLocation();
   const usesSharedGuildBgm =
-    location.pathname === "/guild" ||
-    location.pathname === "/guild/details" ||
-    location.pathname === "/guild/my-guild";
-  const usesSharedHomeBgm = location.pathname === "/home" || location.pathname === "/mypage";
+    location.pathname === PATHS.GUILD ||
+    location.pathname === PATHS.GUILD_DETAILS ||
+    location.pathname === PATHS.GUILD_MY_GUILD;
+  const usesSharedHomeBgm = location.pathname === PATHS.HOME || location.pathname === PATHS.MY_PAGE;
   const completeInitialProfile = async (username: string) => {
     if (username.trim() === "") return;
 
@@ -31,7 +32,7 @@ export function AppRoutes() {
     } catch (error) {
       console.error("failed to complete initial profile", error);
     } finally {
-      navigate("/analysis");
+      navigate(PATHS.ANALYSIS);
     }
   };
 
@@ -40,25 +41,25 @@ export function AppRoutes() {
       {usesSharedHomeBgm && <HomeBgm />}
       {usesSharedGuildBgm && <GuildBgm />}
       <Routes>
-        <Route path="/" element={<App />} />
+        <Route path={PATHS.ROOT} element={<App />} />
         <Route
-          path="/profile"
+          path={PATHS.PROFILE}
           element={
             <InitialProfile onComplete={(username) => void completeInitialProfile(username)} />
           }
         />
         <Route
-          path="/analysis"
-          element={<ContributionAnalysis onComplete={() => navigate("/home")} />}
+          path={PATHS.ANALYSIS}
+          element={<ContributionAnalysis onComplete={() => navigate(PATHS.HOME)} />}
         />
-        <Route path="/home" element={<Home onNavigate={navigate} />} />
-        <Route path="/mypage" element={<MyPage onNavigate={navigate} />} />
-        <Route path="/guild" element={<GuildDashboard onNavigate={navigate} />} />
-        <Route path="/guild/details" element={<MyGuildDetails onNavigate={navigate} />} />
-        <Route path="/guild/my-guild" element={<MyGuildDetails onNavigate={navigate} />} />
-        <Route path="/guild/town" element={<GuildTown onNavigate={navigate} />} />
-        <Route path="/war" element={<Navigate to="/mypage" replace />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path={PATHS.HOME} element={<Home onNavigate={navigate} />} />
+        <Route path={PATHS.MY_PAGE} element={<MyPage onNavigate={navigate} />} />
+        <Route path={PATHS.GUILD} element={<GuildDashboard onNavigate={navigate} />} />
+        <Route path={PATHS.GUILD_DETAILS} element={<MyGuildDetails onNavigate={navigate} />} />
+        <Route path={PATHS.GUILD_MY_GUILD} element={<MyGuildDetails onNavigate={navigate} />} />
+        <Route path={PATHS.GUILD_TOWN} element={<GuildTown onNavigate={navigate} />} />
+        <Route path={PATHS.WAR} element={<Navigate to={PATHS.MY_PAGE} replace />} />
+        <Route path="*" element={<Navigate to={PATHS.ROOT} replace />} />
       </Routes>
     </>
   );
