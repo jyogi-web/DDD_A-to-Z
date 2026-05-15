@@ -10,6 +10,8 @@ import (
 	"github.com/joho/godotenv"
 	authapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/auth"
 	githubapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/github"
+	mypageapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/mypage"
+	"github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/user"
 	"github.com/jyogi-web/ddd-a-to-z/services/api/internal/infrastructure/config"
 	"github.com/jyogi-web/ddd-a-to-z/services/api/internal/infrastructure/database"
 	infragithub "github.com/jyogi-web/ddd-a-to-z/services/api/internal/infrastructure/github"
@@ -44,7 +46,7 @@ func main() {
 		}
 	}()
 
-	authController, repositoryController, err := buildControllers(logger, db)
+	authController, repositoryController, mypageController, err := buildControllers(logger, db)
 	if err != nil {
 		logger.Error("failed to build controllers", "error", err)
 		os.Exit(1)
@@ -55,7 +57,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:              ":" + addr,
-		Handler:           httpapi.NewRouter(logger, authController, repositoryController),
+		Handler:           httpapi.NewRouter(logger, authController, repositoryController, mypageController),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      30 * time.Second,
@@ -67,26 +69,26 @@ func main() {
 	}
 }
 
-func buildControllers(logger *slog.Logger, db *gorm.DB) (*httpapi.AuthController, *httpapi.RepositoryController, error) {
+func buildControllers(logger *slog.Logger, db *gorm.DB) (*httpapi.AuthController, *httpapi.RepositoryController, *httpapi.MypageController, error) {
 	oauthConfig, err := config.GitHubOAuthFromEnv()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	cookieSecret, err := config.AuthCookieSecretFromEnv()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	cookieSecure, err := config.AuthCookieSecureFromEnv()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	tokenSecret, err := config.GitHubTokenEncryptionSecretFromEnv()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	tokenCipher, err := security.NewTokenCipher(tokenSecret)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	frontendURL := config.EnvOrDefault("FRONTEND_URL", "http://localhost:5173")
 
@@ -94,6 +96,8 @@ func buildControllers(logger *slog.Logger, db *gorm.DB) (*httpapi.AuthController
 	repositoryClient := infragithub.NewRepositoryClient(nil)
 	authStore := postgres.NewAuthStore(db, tokenCipher)
 	repositoryStore := postgres.NewRepositoryStore(db)
+	contributionPointStore := postgres.NewContributionPointStore(db)
+	mypageStore := postgres.NewMyPageStore(db)
 	usecase := authapp.NewUseCase(
 		oauthClient,
 		authStore,
@@ -108,6 +112,18 @@ func buildControllers(logger *slog.Logger, db *gorm.DB) (*httpapi.AuthController
 		repositoryStore,
 	)
 
+	// MyPage use case: compose CP reader from existing ContributionPointStore (balance)
+	// and MyPageStore (total earned/spent, repository summary).
+	mypageCPReader := &compositeCPReader{
+		balance: contributionPointStore,
+		totals:  mypageStore,
+	}
+	mypageUseCase := mypageapp.NewUseCase(
+		authStore,
+		mypageCPReader,
+		mypageStore,
+	)
+
 	authController := httpapi.NewAuthController(
 		usecase,
 		logger,
@@ -116,6 +132,31 @@ func buildControllers(logger *slog.Logger, db *gorm.DB) (*httpapi.AuthController
 		frontendURL,
 	)
 	repositoryController := httpapi.NewRepositoryController(repositoryUseCase, logger)
+	mypageController := httpapi.NewMypageController(mypageUseCase, logger)
 
-	return authController, repositoryController, nil
+	return authController, repositoryController, mypageController, nil
+}
+
+// compositeCPReader combines the existing ContributionPointStore (for balance)
+// with MyPageStore (for total earned/spent) to satisfy the mypage.ContributionPointReader port.
+type compositeCPReader struct {
+	balance interface {
+		GetBalance(ctx context.Context, userID user.ID) (int64, error)
+	}
+	totals interface {
+		GetTotalEarned(ctx context.Context, userID user.ID) (int64, error)
+		GetTotalSpent(ctx context.Context, userID user.ID) (int64, error)
+	}
+}
+
+func (c *compositeCPReader) GetBalance(ctx context.Context, userID user.ID) (int64, error) {
+	return c.balance.GetBalance(ctx, userID)
+}
+
+func (c *compositeCPReader) GetTotalEarned(ctx context.Context, userID user.ID) (int64, error) {
+	return c.totals.GetTotalEarned(ctx, userID)
+}
+
+func (c *compositeCPReader) GetTotalSpent(ctx context.Context, userID user.ID) (int64, error) {
+	return c.totals.GetTotalSpent(ctx, userID)
 }
