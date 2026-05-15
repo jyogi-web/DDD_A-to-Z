@@ -26,6 +26,7 @@ func NewProfileController(usecase *profileapp.UseCase, logger *slog.Logger) *Pro
 // プロフィール関連のエンドポイントを登録
 func (c *ProfileController) RegisterRoutes(mux *stdhttp.ServeMux) {
 	mux.HandleFunc("POST /profile/complete", c.completeInitialProfile)
+	mux.HandleFunc("GET /profile", c.getProfile)
 }
 
 // bodyの構造体
@@ -71,4 +72,39 @@ func (c *ProfileController) completeInitialProfile(w stdhttp.ResponseWriter, r *
 	}
 
 	w.WriteHeader(stdhttp.StatusOK)
+}
+
+func (c *ProfileController) getProfile(w stdhttp.ResponseWriter, r *stdhttp.Request) {
+	cookie, err := r.Cookie(sessionCookieName)
+	if err != nil {
+		writeAPIError(w, stdhttp.StatusUnauthorized, "unauthenticated", "unauthenticated", 0, nil)
+		return
+	}
+
+	appUser, ok, err := c.usecase.FindUser(r.Context(), cookie.Value)
+	if err != nil || !ok {
+		writeAPIError(w, stdhttp.StatusUnauthorized, "unauthenticated", "unauthenticated", 0, nil)
+		return
+	}
+
+	profile, exists, err := c.usecase.GetProfile(r.Context(), appUser.ID)
+	if err != nil {
+		c.logger.Error("failed to get profile", "error", err)
+		writeAPIError(w, stdhttp.StatusInternalServerError, "internal_error", "Internal Server Error", 0, nil)
+		return
+	}
+
+	if !exists {
+		writeAPIError(w, stdhttp.StatusNotFound, "not_found", "profile not found", 0, nil)
+		return
+	}
+
+	resp := map[string]any{
+		"display_name": profile.DisplayName,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		c.logger.Error("failed to write profile response", "error", err)
+	}
 }

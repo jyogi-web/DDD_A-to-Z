@@ -7,6 +7,7 @@ import (
 	"time"
 
 	domainprofile "github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/profile"
+	"github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/user"
 )
 
 // エラーパッケージ(未ログイン、プロフィールが既に存在、無効な表示名)
@@ -70,4 +71,14 @@ func (u *UseCase) CompleteInitialProfile(ctx context.Context, input CompleteInit
 
 	// 4. Persist
 	return u.profiles.Save(ctx, p)
+}
+
+// FindUser resolves a session token to the authenticated user.
+func (u *UseCase) FindUser(ctx context.Context, sessionToken string) (user.User, bool, error) {
+	return u.current.FindUserBySessionToken(ctx, sessionToken, u.now())
+}
+
+// GetProfile returns the profile for the given user ID.
+func (u *UseCase) GetProfile(ctx context.Context, userID user.ID) (domainprofile.Profile, bool, error) {
+	return u.profiles.FindByUserID(ctx, userID)
 }

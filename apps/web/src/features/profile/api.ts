@@ -6,3 +6,17 @@ export async function completeInitialProfileAPI(displayName: string): Promise<vo
     body: JSON.stringify({ display_name: displayName }),
   });
 }
+
+export type Profile = {
+  display_name: string;
+};
+
+export async function fetchProfile(): Promise<Profile | null> {
+  try {
+    const data = await apiFetch<Profile>("/profile");
+    return data;
+  } catch (e) {
+    // 401 や 404 の場合は null を返す
+    return null;
+  }
+}
