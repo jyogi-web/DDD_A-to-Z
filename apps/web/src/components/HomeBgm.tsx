@@ -9,18 +9,24 @@ export function HomeBgm() {
   const { isBgmEnabled } = useAudioSettings();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const hasAttemptedPlayRef = useRef(false);
+  const isUnmountedRef = useRef(false);
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
+    isUnmountedRef.current = false;
     let isUnlocked = false;
     let fadeFrameId: number | undefined;
     audio.volume = 0;
 
     const fadeInBgm = () => {
+      if (isUnmountedRef.current) return;
+
       const startedAt = performance.now();
       const tick = (now: number) => {
+        if (isUnmountedRef.current) return;
+
         const progress = Math.min(1, (now - startedAt) / HOME_BGM_FADE_IN_MS);
         audio.volume = HOME_BGM_VOLUME * progress;
 
@@ -44,11 +50,15 @@ export function HomeBgm() {
       void audio
         .play()
         .then(() => {
+          if (isUnmountedRef.current) return;
+
           isUnlocked = true;
           removeUnlockListeners();
           fadeInBgm();
         })
         .catch(() => {
+          if (isUnmountedRef.current) return;
+
           // ブラウザの自動再生制限で止められた場合は、最初のユーザー操作で再試行する。
         });
     };
@@ -62,6 +72,7 @@ export function HomeBgm() {
     window.addEventListener("keydown", unlockBgm);
 
     return () => {
+      isUnmountedRef.current = true;
       removeUnlockListeners();
       if (fadeFrameId !== undefined) {
         window.cancelAnimationFrame(fadeFrameId);

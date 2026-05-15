@@ -35,16 +35,14 @@ export function GuildDashboard({ onNavigate }: GuildDashboardProps) {
 
   const switchTab = useCallback(
     (tab: GuildTab) => {
-      setActiveTab((current) => {
-        if (current === tab) {
-          return current;
-        }
+      if (activeTab === tab) {
+        return;
+      }
 
-        playTabSwitchSe();
-        return tab;
-      });
+      playTabSwitchSe();
+      setActiveTab(tab);
     },
-    [playTabSwitchSe],
+    [activeTab, playTabSwitchSe],
   );
 
   useEffect(() => {
