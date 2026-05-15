@@ -13,6 +13,7 @@ import (
 	guildapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/guild"
 	mypageapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/mypage"
 	profileapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/profile"
+	contributionpointdomain "github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/contributionpoint"
 	"github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/user"
 	"github.com/jyogi-web/ddd-a-to-z/services/api/internal/infrastructure/config"
 	"github.com/jyogi-web/ddd-a-to-z/services/api/internal/infrastructure/database"
@@ -155,7 +156,7 @@ func buildControllers(logger *slog.Logger, db *gorm.DB) (*httpapi.AuthController
 // with MyPageStore (for total earned/spent) to satisfy the mypage.ContributionPointReader port.
 type compositeCPReader struct {
 	balance interface {
-		GetBalance(ctx context.Context, userID user.ID) (int64, error)
+		GetBalance(ctx context.Context, userID user.ID, pointType contributionpointdomain.PointType) (int64, error)
 	}
 	totals interface {
 		GetTotalEarned(ctx context.Context, userID user.ID) (int64, error)
@@ -164,7 +165,7 @@ type compositeCPReader struct {
 }
 
 func (c *compositeCPReader) GetBalance(ctx context.Context, userID user.ID) (int64, error) {
-	return c.balance.GetBalance(ctx, userID)
+	return c.balance.GetBalance(ctx, userID, contributionpointdomain.PointTypeCP)
 }
 
 func (c *compositeCPReader) GetTotalEarned(ctx context.Context, userID user.ID) (int64, error) {
