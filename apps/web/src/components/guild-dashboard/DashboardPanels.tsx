@@ -21,6 +21,9 @@ export function ActivityLogPanel({ logs }: { logs: ActivityLog[] }) {
   return (
     <motion.section
       key="activity"
+      id="guild-dashboard-activity-panel"
+      role="tabpanel"
+      aria-labelledby="guild-dashboard-activity-tab"
       variants={tabContentVariants}
       initial="hidden"
       animate="visible"
@@ -99,6 +102,9 @@ export function RankingsPanel() {
   return (
     <motion.section
       key="rankings"
+      id="guild-dashboard-rankings-panel"
+      role="tabpanel"
+      aria-labelledby="guild-dashboard-rankings-tab"
       variants={tabContentVariants}
       initial="hidden"
       animate="visible"

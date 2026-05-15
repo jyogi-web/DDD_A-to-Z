@@ -57,6 +57,7 @@ export function DashboardMonitor({ activeTab, logs, onSwitchTab, tabs }: Dashboa
 
         <nav
           aria-label="Guild dashboard tabs"
+          role="tablist"
           style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
@@ -70,6 +71,11 @@ export function DashboardMonitor({ activeTab, logs, onSwitchTab, tabs }: Dashboa
               <button
                 key={tab.id}
                 type="button"
+                id={`guild-dashboard-${tab.id}-tab`}
+                role="tab"
+                aria-controls={`guild-dashboard-${tab.id}-panel`}
+                aria-selected={isActive}
+                tabIndex={isActive ? 0 : -1}
                 onClick={() => onSwitchTab(tab.id)}
                 style={{
                   minHeight: "34px",
