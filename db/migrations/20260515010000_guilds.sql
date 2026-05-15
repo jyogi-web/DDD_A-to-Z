@@ -11,7 +11,7 @@ CREATE TABLE "guilds" (
   "updated_at" timestamptz NOT NULL,
   PRIMARY KEY ("id"),
   CONSTRAINT "guilds_slug_key" UNIQUE ("slug"),
-  CONSTRAINT "guilds_color_check" CHECK (length(color) > 0),
+  CONSTRAINT "guilds_color_check" CHECK (color ~ '^#[0-9A-Fa-f]{6}$'),
   CONSTRAINT "guilds_description_check" CHECK (length(description) > 0),
   CONSTRAINT "guilds_icon_check" CHECK (length(icon) > 0),
   CONSTRAINT "guilds_name_check" CHECK (length(name) > 0),

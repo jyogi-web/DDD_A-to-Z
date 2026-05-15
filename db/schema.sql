@@ -175,7 +175,7 @@ CREATE TABLE guilds (
   name TEXT NOT NULL CHECK (length(name) > 0),
   description TEXT NOT NULL CHECK (length(description) > 0),
   icon TEXT NOT NULL CHECK (length(icon) > 0),
-  color TEXT NOT NULL CHECK (length(color) > 0),
+  color TEXT NOT NULL CHECK (color ~ '^#[0-9A-Fa-f]{6}$'),
   sort_order INTEGER NOT NULL CHECK (sort_order >= 0),
   created_at TIMESTAMPTZ NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL

@@ -120,6 +120,32 @@ func TestGuildMembershipAllowsOnlyOneActiveGuildPerUser(t *testing.T) {
 	})
 }
 
+func TestGuildsRejectInvalidColor(t *testing.T) {
+	ctx := context.Background()
+	tx := beginPostgresTestTransaction(t, ctx)
+
+	now := time.Date(2026, 5, 15, 2, 0, 0, 0, time.UTC)
+	validGuildID := fmt.Sprintf("guild_valid_color_test_%d", uniqueGitHubID())
+	insertPostgresTestGuild(t, ctx, tx, testGuild{
+		ID:          validGuildID,
+		Slug:        validGuildID,
+		Name:        "Valid Color",
+		Description: "色制約の前提を確認するテストギルド。",
+		Icon:        "V",
+		Color:       "#abcdef",
+		SortOrder:   1,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	})
+
+	expectPostgresStatementError(t, tx, func() error {
+		return tx.WithContext(ctx).Exec(`
+			INSERT INTO guilds (id, slug, name, description, icon, color, sort_order, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`, "guild_invalid_color_"+validGuildID, "invalid_color_"+validGuildID, "Invalid Color", "不正な色を持つテストギルド。", "I", "3178c6", 2, now, now).Error
+	})
+}
+
 type testGuild struct {
 	ID          string
 	Slug        string
