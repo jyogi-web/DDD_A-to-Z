@@ -11,6 +11,7 @@ import (
 	authapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/auth"
 	githubapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/github"
 	mypageapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/mypage"
+	profileapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/profile"
 	"github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/user"
 	"github.com/jyogi-web/ddd-a-to-z/services/api/internal/infrastructure/config"
 	"github.com/jyogi-web/ddd-a-to-z/services/api/internal/infrastructure/database"
@@ -46,7 +47,7 @@ func main() {
 		}
 	}()
 
-	authController, repositoryController, mypageController, err := buildControllers(logger, db)
+	authController, repositoryController, mypageController, profileController, err := buildControllers(logger, db)
 	if err != nil {
 		logger.Error("failed to build controllers", "error", err)
 		os.Exit(1)
@@ -57,7 +58,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:              ":" + addr,
-		Handler:           httpapi.NewRouter(logger, authController, repositoryController, mypageController),
+		Handler:           httpapi.NewRouter(logger, authController, repositoryController, mypageController, profileController),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      30 * time.Second,
@@ -69,26 +70,26 @@ func main() {
 	}
 }
 
-func buildControllers(logger *slog.Logger, db *gorm.DB) (*httpapi.AuthController, *httpapi.RepositoryController, *httpapi.MypageController, error) {
+func buildControllers(logger *slog.Logger, db *gorm.DB) (*httpapi.AuthController, *httpapi.RepositoryController, *httpapi.MypageController, *httpapi.ProfileController, error) {
 	oauthConfig, err := config.GitHubOAuthFromEnv()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	cookieSecret, err := config.AuthCookieSecretFromEnv()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	cookieSecure, err := config.AuthCookieSecureFromEnv()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	tokenSecret, err := config.GitHubTokenEncryptionSecretFromEnv()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	tokenCipher, err := security.NewTokenCipher(tokenSecret)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	frontendURL := config.EnvOrDefault("FRONTEND_URL", "http://localhost:5173")
 
@@ -98,6 +99,7 @@ func buildControllers(logger *slog.Logger, db *gorm.DB) (*httpapi.AuthController
 	repositoryStore := postgres.NewRepositoryStore(db)
 	contributionPointStore := postgres.NewContributionPointStore(db)
 	mypageStore := postgres.NewMyPageStore(db)
+	profileStore := postgres.NewProfileStore(db)
 	usecase := authapp.NewUseCase(
 		oauthClient,
 		authStore,
@@ -123,6 +125,10 @@ func buildControllers(logger *slog.Logger, db *gorm.DB) (*httpapi.AuthController
 		mypageCPReader,
 		mypageStore,
 	)
+	profileUseCase := profileapp.NewUseCase(
+		authStore,
+		profileStore,
+	)
 
 	authController := httpapi.NewAuthController(
 		usecase,
@@ -133,8 +139,9 @@ func buildControllers(logger *slog.Logger, db *gorm.DB) (*httpapi.AuthController
 	)
 	repositoryController := httpapi.NewRepositoryController(repositoryUseCase, logger)
 	mypageController := httpapi.NewMypageController(mypageUseCase, logger)
+	profileController := httpapi.NewProfileController(profileUseCase, logger)
 
-	return authController, repositoryController, mypageController, nil
+	return authController, repositoryController, mypageController, profileController, nil
 }
 
 // compositeCPReader combines the existing ContributionPointStore (for balance)
