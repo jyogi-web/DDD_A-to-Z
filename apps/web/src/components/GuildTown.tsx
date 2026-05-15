@@ -11,6 +11,7 @@ import { steppedEase } from "../lib/animationUtils";
 const MIN_SCALE = 0.5;
 const MAX_SCALE = 2.5;
 const ZOOM_STEP = 0.15;
+const STORE_ANIMATION_MS = 260;
 
 type InventoryItemType = "tent" | "bonfire";
 
@@ -107,6 +108,7 @@ export function GuildTown({
   const [placedItems, setPlacedItems] = useState<PlacedItem[]>([]);
   const [inventoryVisible, setInventoryVisible] = useState(true);
   const [selectedPlacedItemId, setSelectedPlacedItemId] = useState<string | null>(null);
+  const [storingPlacedItemIds, setStoringPlacedItemIds] = useState<string[]>([]);
   const mapRef = useRef<HTMLDivElement>(null);
   const inventoryRef = useRef<HTMLDivElement>(null);
   const seededInitialBuildingsRef = useRef(false);
@@ -275,17 +277,26 @@ export function GuildTown({
   };
 
   const handleStorePlacedItem = (item: PlacedItem) => {
-    setPlacedItems((currentItems) =>
-      currentItems.filter((placedItem) => placedItem.id !== item.id),
-    );
-    setInventory((currentInventory) =>
-      currentInventory.map((inventoryItem) =>
-        inventoryItem.type === item.type
-          ? { ...inventoryItem, count: inventoryItem.count + 1 }
-          : inventoryItem,
-      ),
-    );
+    if (storingPlacedItemIds.includes(item.id)) return;
+
+    setStoringPlacedItemIds((currentIds) => [...currentIds, item.id]);
     setSelectedPlacedItemId(null);
+
+    window.setTimeout(() => {
+      setPlacedItems((currentItems) =>
+        currentItems.filter((placedItem) => placedItem.id !== item.id),
+      );
+      setInventory((currentInventory) =>
+        currentInventory.map((inventoryItem) =>
+          inventoryItem.type === item.type
+            ? { ...inventoryItem, count: inventoryItem.count + 1 }
+            : inventoryItem,
+        ),
+      );
+      setStoringPlacedItemIds((currentIds) =>
+        currentIds.filter((storingItemId) => storingItemId !== item.id),
+      );
+    }, STORE_ANIMATION_MS);
   };
 
   return (
@@ -354,23 +365,32 @@ export function GuildTown({
           }}
         />
 
-        {placedItems.map((item) => (
-          <motion.div
-            key={item.id}
-            style={{
-              position: "absolute",
-              left: item.x,
-              top: item.y,
-              width: item.width,
-              height: "fit-content",
-              outline:
-                selectedPlacedItemId === item.id
-                  ? "3px solid rgba(255, 217, 102, 0.82)"
-                  : "3px solid transparent",
-              outlineOffset: "4px",
-              zIndex: selectedPlacedItemId === item.id ? 10 : 8,
-            }}
-          >
+        {placedItems.map((item) => {
+          const isSelected = selectedPlacedItemId === item.id;
+          const isStoring = storingPlacedItemIds.includes(item.id);
+
+          return (
+            <motion.div
+              key={item.id}
+              animate={{
+                opacity: isStoring ? 0 : 1,
+                scale: isStoring ? 0.72 : 1,
+                y: isStoring ? -22 : 0,
+              }}
+              transition={{ duration: 0.24, ease: steppedEase(6) }}
+              style={{
+                position: "absolute",
+                left: item.x,
+                top: item.y,
+                width: item.width,
+                height: "fit-content",
+                outline: isSelected ? "3px solid rgba(255, 217, 102, 0.82)" : "3px solid transparent",
+                outlineOffset: "4px",
+                pointerEvents: isStoring ? "none" : "auto",
+                transformOrigin: "50% 80%",
+                zIndex: isSelected || isStoring ? 10 : 8,
+              }}
+            >
             <motion.img
               className="pixelated"
               src={item.src}
@@ -392,12 +412,12 @@ export function GuildTown({
                 touchAction: "none",
                 userSelect: "none",
                 filter:
-                  selectedPlacedItemId === item.id
+                  isSelected
                     ? "drop-shadow(10px 14px 0 rgba(0,0,0,0.3)) drop-shadow(0 0 12px rgba(255,217,102,0.72))"
                     : "drop-shadow(10px 14px 0 rgba(0,0,0,0.3))",
               }}
             />
-            {selectedPlacedItemId === item.id && (
+            {isSelected && (
               <motion.button
                 type="button"
                 aria-label={`Store ${item.name}`}
@@ -434,7 +454,8 @@ export function GuildTown({
               </motion.button>
             )}
           </motion.div>
-        ))}
+          );
+        })}
       </motion.div>
 
       <motion.header
