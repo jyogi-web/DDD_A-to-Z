@@ -8,6 +8,7 @@ import { Home } from "./components/Home.tsx";
 import { InitialProfile } from "./components/InitialProfile.tsx";
 import { MyPage } from "./components/MyPage.tsx";
 import { fetchMe } from "./features/auth/api.ts";
+import { completeInitialProfileAPI } from "./features/profile/api.ts";
 import { markInitialProfileCompleted } from "./features/profile/initialProfile.ts";
 
 export function AppRoutes() {
@@ -18,6 +19,7 @@ export function AppRoutes() {
     try {
       const user = await fetchMe();
       if (user) {
+        await completeInitialProfileAPI(username);
         markInitialProfileCompleted(user.id);
       }
     } catch (error) {
