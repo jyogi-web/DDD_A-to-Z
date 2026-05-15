@@ -11,6 +11,10 @@ type UseCase struct {
 }
 
 func NewUseCase(repository Repository) *UseCase {
+	if repository == nil {
+		panic("guild repository is required")
+	}
+
 	return &UseCase{repository: repository}
 }
 
