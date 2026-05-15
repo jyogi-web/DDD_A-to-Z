@@ -1,61 +1,68 @@
-import { Navigate, Route, Routes, useNavigate } from "react-router";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router";
 import App from "./App.tsx";
 import { ContributionAnalysis } from "./components/ContributionAnalysis.tsx";
+import { GuildBgm } from "./components/GuildBgm.tsx";
 import { GuildDashboard } from "./components/GuildDashboard.tsx";
-import { GuildPlaceholderPage } from "./components/GuildPlaceholderPage.tsx";
 import { GuildTown } from "./components/GuildTown.tsx";
 import { Home } from "./components/Home.tsx";
+import { HomeBgm } from "./components/HomeBgm.tsx";
 import { InitialProfile } from "./components/InitialProfile.tsx";
 import { MyPage } from "./components/MyPage.tsx";
+import { MyGuildDetails } from "./components/MyGuildDetails.tsx";
+import { PATHS } from "./constants/paths.ts";
 import { fetchMe } from "./features/auth/api.ts";
+import { completeInitialProfileAPI } from "./features/profile/api.ts";
 import { markInitialProfileCompleted } from "./features/profile/initialProfile.ts";
 
 export function AppRoutes() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const usesSharedGuildBgm =
+    location.pathname === PATHS.GUILD ||
+    location.pathname === PATHS.GUILD_DETAILS ||
+    location.pathname === PATHS.GUILD_MY_GUILD;
+  const usesSharedHomeBgm = location.pathname === PATHS.HOME || location.pathname === PATHS.MY_PAGE;
   const completeInitialProfile = async (username: string) => {
     if (username.trim() === "") return;
 
     try {
       const user = await fetchMe();
       if (user) {
+        await completeInitialProfileAPI(username);
         markInitialProfileCompleted(user.id);
       }
     } catch (error) {
       console.error("failed to complete initial profile", error);
     } finally {
-      navigate("/analysis");
+      navigate(PATHS.ANALYSIS);
     }
   };
 
   return (
-    <Routes>
-      <Route path="/" element={<App />} />
-      <Route
-        path="/profile"
-        element={
-          <InitialProfile onComplete={(username) => void completeInitialProfile(username)} />
-        }
-      />
-      <Route
-        path="/analysis"
-        element={<ContributionAnalysis onComplete={() => navigate("/home")} />}
-      />
-      <Route path="/home" element={<Home onNavigate={navigate} />} />
-      <Route path="/mypage" element={<MyPage onNavigate={navigate} />} />
-      <Route path="/guild" element={<GuildDashboard onNavigate={navigate} />} />
-      <Route
-        path="/guild/details"
-        element={
-          <GuildPlaceholderPage
-            title="GUILD DETAILS"
-            caption="ギルド詳細画面は準備中です。"
-            onNavigate={navigate}
-          />
-        }
-      />
-      <Route path="/guild/town" element={<GuildTown onNavigate={navigate} />} />
-      <Route path="/war" element={<Navigate to="/mypage" replace />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      {usesSharedHomeBgm && <HomeBgm />}
+      {usesSharedGuildBgm && <GuildBgm />}
+      <Routes>
+        <Route path={PATHS.ROOT} element={<App />} />
+        <Route
+          path={PATHS.PROFILE}
+          element={
+            <InitialProfile onComplete={(username) => void completeInitialProfile(username)} />
+          }
+        />
+        <Route
+          path={PATHS.ANALYSIS}
+          element={<ContributionAnalysis onComplete={() => navigate(PATHS.HOME)} />}
+        />
+        <Route path={PATHS.HOME} element={<Home onNavigate={navigate} />} />
+        <Route path={PATHS.MY_PAGE} element={<MyPage onNavigate={navigate} />} />
+        <Route path={PATHS.GUILD} element={<GuildDashboard onNavigate={navigate} />} />
+        <Route path={PATHS.GUILD_DETAILS} element={<MyGuildDetails onNavigate={navigate} />} />
+        <Route path={PATHS.GUILD_MY_GUILD} element={<MyGuildDetails onNavigate={navigate} />} />
+        <Route path={PATHS.GUILD_TOWN} element={<GuildTown onNavigate={navigate} />} />
+        <Route path={PATHS.WAR} element={<Navigate to={PATHS.MY_PAGE} replace />} />
+        <Route path="*" element={<Navigate to={PATHS.ROOT} replace />} />
+      </Routes>
+    </>
   );
 }

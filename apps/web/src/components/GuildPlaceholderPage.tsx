@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
+import { BACK_NAVIGATION_SE_SRC, useBackNavigationSe } from "../hooks/useBackNavigationSe";
 import { steppedEase } from "../lib/animationUtils";
-import { GuildBgm } from "./GuildBgm";
 import styles from "./GuildPlaceholderPage.module.css";
 
 interface GuildPlaceholderPageProps {
@@ -16,9 +16,16 @@ export function GuildPlaceholderPage({
   backPath = "/guild",
   onNavigate,
 }: GuildPlaceholderPageProps) {
+  const { backNavigationSeRef, navigateBackWithSe } = useBackNavigationSe(onNavigate);
+
   return (
     <main className={styles.mainContainer}>
-      <GuildBgm />
+      <audio
+        ref={backNavigationSeRef}
+        src={BACK_NAVIGATION_SE_SRC}
+        preload="none"
+        aria-hidden="true"
+      />
 
       <motion.section
         className={styles.panel}
@@ -34,7 +41,7 @@ export function GuildPlaceholderPage({
           type="button"
           whileHover={{ y: -2, scale: 1.02 }}
           whileTap={{ y: 2, scale: 0.98 }}
-          onClick={() => onNavigate(backPath)}
+          onClick={() => void navigateBackWithSe(backPath)}
         >
           &lt; GUILD BASE
         </motion.button>
