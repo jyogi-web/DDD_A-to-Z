@@ -109,6 +109,7 @@ export function GuildTown({
   const [selectedPlacedItemId, setSelectedPlacedItemId] = useState<string | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const inventoryRef = useRef<HTMLDivElement>(null);
+  const seededInitialBuildingsRef = useRef(false);
   const mapX = useMotionValue(0);
   const mapY = useMotionValue(0);
   const dragConstraints = {
@@ -137,6 +138,45 @@ export function GuildTown({
     mapX.set(-viewport.width * 0.5);
     mapY.set(-viewport.height * 0.5);
   }, [mapX, mapY, viewport.height, viewport.width]);
+
+  useEffect(() => {
+    if (seededInitialBuildingsRef.current || viewport.width === 0 || viewport.height === 0) {
+      return;
+    }
+
+    const tent = INITIAL_INVENTORY.find((item) => item.type === "tent");
+    const bonfire = INITIAL_INVENTORY.find((item) => item.type === "bonfire");
+    if (!tent || !bonfire) return;
+
+    const tentWidth = getInventoryMapWidth(tent, viewport.width);
+    const bonfireWidth = getInventoryMapWidth(bonfire, viewport.width);
+
+    setPlacedItems([
+      {
+        id: "initial-tent",
+        type: tent.type,
+        name: tent.name,
+        title: tent.title,
+        description: tent.description,
+        src: mainStructureSrc,
+        x: viewport.width - tentWidth * 0.64,
+        y: viewport.height - tentWidth * 0.28,
+        width: tentWidth,
+      },
+      {
+        id: "initial-bonfire",
+        type: bonfire.type,
+        name: bonfire.name,
+        title: bonfire.title,
+        description: bonfire.description,
+        src: bonfireSrc,
+        x: viewport.width + bonfireWidth * 0.42,
+        y: viewport.height + bonfireWidth * 0.62,
+        width: bonfireWidth,
+      },
+    ]);
+    seededInitialBuildingsRef.current = true;
+  }, [bonfireSrc, mainStructureSrc, viewport.height, viewport.width]);
 
   useEffect(() => {
     mapX.set(clampValue(mapX.get(), dragConstraints.left, dragConstraints.right));
@@ -299,96 +339,6 @@ export function GuildTown({
             zIndex: 2,
           }}
         />
-
-        <div
-          style={{
-            position: "absolute",
-            left: "50%",
-            top: "50%",
-            width: "clamp(210px, 29vw, 430px)",
-            transform: "translate(-64%, -28%)",
-            zIndex: 3,
-            pointerEvents: "none",
-          }}
-        >
-          <motion.img
-            className="pixelated drop-shadow-[18px_22px_0_rgba(0,0,0,0.28)]"
-            src={mainStructureSrc}
-            alt=""
-            aria-hidden="true"
-            initial={{ opacity: 0, y: 18, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.36, ease: steppedEase(7) }}
-            style={{
-              display: "block",
-              width: "100%",
-              height: "auto",
-              mixBlendMode: "screen",
-            }}
-          />
-        </div>
-
-        <div
-          style={{
-            position: "absolute",
-            left: "50%",
-            top: "50%",
-            width: "clamp(92px, 12vw, 164px)",
-            transform: "translate(42%, 62%)",
-            zIndex: 4,
-            pointerEvents: "none",
-          }}
-        >
-          <div
-            aria-hidden="true"
-            style={{
-              position: "absolute",
-              left: "50%",
-              top: "46%",
-              width: "68%",
-              aspectRatio: "1 / 1",
-              transform: "translate(-50%, -50%)",
-            }}
-          >
-            <motion.div
-              className="bg-orange-500/30 blur-2xl"
-              animate={{
-                opacity: [0.58, 0.88, 0.66, 0.8, 0.58],
-                scale: [0.92, 1.08, 0.98, 1.04, 0.92],
-              }}
-              transition={{ duration: 1.45, ease: "easeInOut", repeat: Infinity }}
-              style={{
-                width: "100%",
-                height: "100%",
-                clipPath: "circle(50% at 50% 50%)",
-              }}
-            />
-          </div>
-          <motion.img
-            className="pixelated drop-shadow-[10px_14px_0_rgba(0,0,0,0.26)]"
-            src={bonfireSrc}
-            alt=""
-            aria-hidden="true"
-            initial={{ opacity: 0, scale: 0.86 }}
-            animate={{
-              opacity: 1,
-              scale: [1, 1.035, 0.98, 1.02, 1],
-              y: [0, -2, 1, -1, 0],
-            }}
-            transition={{
-              opacity: { duration: 0.26, ease: steppedEase(5) },
-              scale: { duration: 1.25, ease: "easeInOut", repeat: Infinity },
-              y: { duration: 1.25, ease: "easeInOut", repeat: Infinity },
-            }}
-            style={{
-              display: "block",
-              position: "relative",
-              width: "100%",
-              height: "auto",
-              mixBlendMode: "screen",
-            }}
-          />
-        </div>
 
         {placedItems.map((item) => (
           <motion.img
