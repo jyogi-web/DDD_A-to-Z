@@ -169,6 +169,13 @@ CREATE TABLE github_repositories (
 CREATE INDEX github_repositories_user_id_pushed_at_idx ON github_repositories(user_id, pushed_at DESC);
 CREATE INDEX github_repositories_user_id_full_name_idx ON github_repositories(user_id, full_name);
 
+CREATE TABLE user_profiles (
+  user_id TEXT PRIMARY KEY REFERENCES users(id),
+  display_name TEXT NOT NULL CHECK (length(display_name) > 0 AND length(display_name) <= 50),
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL
+);
+
 CREATE TABLE guilds (
   id TEXT PRIMARY KEY,
   slug TEXT NOT NULL UNIQUE CHECK (length(slug) > 0),

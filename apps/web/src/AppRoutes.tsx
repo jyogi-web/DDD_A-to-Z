@@ -11,6 +11,7 @@ import { MyPage } from "./components/MyPage.tsx";
 import { MyGuildDetails } from "./components/MyGuildDetails.tsx";
 import { PATHS } from "./constants/paths.ts";
 import { fetchMe } from "./features/auth/api.ts";
+import { completeInitialProfileAPI } from "./features/profile/api.ts";
 import { markInitialProfileCompleted } from "./features/profile/initialProfile.ts";
 
 export function AppRoutes() {
@@ -27,6 +28,7 @@ export function AppRoutes() {
     try {
       const user = await fetchMe();
       if (user) {
+        await completeInitialProfileAPI(username);
         markInitialProfileCompleted(user.id);
       }
     } catch (error) {
