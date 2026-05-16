@@ -9,7 +9,10 @@ import (
 
 	"github.com/joho/godotenv"
 	authapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/auth"
+	contributionpointapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/contributionpoint"
 	githubapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/github"
+	analysisapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/repositoryanalysis"
+	"github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/user"
 	"github.com/jyogi-web/ddd-a-to-z/services/api/internal/infrastructure/config"
 	"github.com/jyogi-web/ddd-a-to-z/services/api/internal/infrastructure/database"
 	infragithub "github.com/jyogi-web/ddd-a-to-z/services/api/internal/infrastructure/github"
@@ -44,7 +47,7 @@ func main() {
 		}
 	}()
 
-	authController, repositoryController, err := buildControllers(logger, db)
+	authController, repositoryController, analysisController, err := buildControllers(logger, db)
 	if err != nil {
 		logger.Error("failed to build controllers", "error", err)
 		os.Exit(1)
@@ -55,10 +58,10 @@ func main() {
 
 	server := &http.Server{
 		Addr:              ":" + addr,
-		Handler:           httpapi.NewRouter(logger, authController, repositoryController),
+		Handler:           httpapi.NewRouter(logger, authController, repositoryController, analysisController),
 		ReadHeaderTimeout: 5 * time.Second,
-		ReadTimeout:       30 * time.Second,
-		WriteTimeout:      30 * time.Second,
+		ReadTimeout:       5 * time.Minute,
+		WriteTimeout:      5 * time.Minute,
 		IdleTimeout:       60 * time.Second,
 	}
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -67,26 +70,41 @@ func main() {
 	}
 }
 
-func buildControllers(logger *slog.Logger, db *gorm.DB) (*httpapi.AuthController, *httpapi.RepositoryController, error) {
+type cpEarner struct {
+	inner *contributionpointapp.UseCase
+}
+
+func (e *cpEarner) Earn(ctx context.Context, userID user.ID, amount int64, reason, sourceType, sourceID string) error {
+	_, err := e.inner.Earn(ctx, contributionpointapp.EarnCommand{
+		UserID:     userID,
+		Amount:     amount,
+		Reason:     reason,
+		SourceType: sourceType,
+		SourceID:   sourceID,
+	})
+	return err
+}
+
+func buildControllers(logger *slog.Logger, db *gorm.DB) (*httpapi.AuthController, *httpapi.RepositoryController, *httpapi.AnalysisController, error) {
 	oauthConfig, err := config.GitHubOAuthFromEnv()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	cookieSecret, err := config.AuthCookieSecretFromEnv()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	cookieSecure, err := config.AuthCookieSecureFromEnv()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	tokenSecret, err := config.GitHubTokenEncryptionSecretFromEnv()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	tokenCipher, err := security.NewTokenCipher(tokenSecret)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	frontendURL := config.EnvOrDefault("FRONTEND_URL", "http://localhost:5173")
 
@@ -117,5 +135,18 @@ func buildControllers(logger *slog.Logger, db *gorm.DB) (*httpapi.AuthController
 	)
 	repositoryController := httpapi.NewRepositoryController(repositoryUseCase, logger)
 
-	return authController, repositoryController, nil
+	cpStore := postgres.NewContributionPointStore(db)
+	cpUseCase := contributionpointapp.NewUseCase(cpStore, security.NewIDGenerator("cp"))
+	analysisUseCase := analysisapp.NewUseCase(
+		authStore,
+		authStore,
+		repositoryClient,
+		repositoryStore,
+		repositoryClient,
+		repositoryClient,
+		&cpEarner{inner: cpUseCase},
+	)
+	analysisController := httpapi.NewAnalysisController(analysisUseCase, logger)
+
+	return authController, repositoryController, analysisController, nil
 }

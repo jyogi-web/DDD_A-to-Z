@@ -228,6 +228,98 @@ func retryWindow(response *http.Response) (time.Duration, *time.Time) {
 	return 0, &resetAt
 }
 
+func (c *RepositoryClient) ListLanguages(ctx context.Context, accessToken, owner, repo string) (map[string]int64, error) {
+	requestURL := c.baseURL + "/repos/" + owner + "/" + repo + "/languages"
+
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	request.Header.Set("Accept", "application/vnd.github+json")
+	request.Header.Set("Authorization", "Bearer "+accessToken)
+	request.Header.Set("User-Agent", userAgent)
+	request.Header.Set("X-GitHub-Api-Version", gitHubAPIVersion)
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, classifyTransportError(err)
+	}
+	defer func() {
+		_ = response.Body.Close()
+	}()
+
+	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
+		return nil, classifyAPIError(response)
+	}
+
+	var payload map[string]int64
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		return nil, err
+	}
+
+	return payload, nil
+}
+
+type commitPayload struct {
+	SHA    string `json:"sha"`
+	Commit struct {
+		Message string `json:"message"`
+		Author  struct {
+			Date time.Time `json:"date"`
+		} `json:"author"`
+	} `json:"commit"`
+}
+
+func (c *RepositoryClient) ListCommits(ctx context.Context, accessToken, owner, repo, author string, since time.Time) ([]repositoryanalysis.CommitItem, error) {
+	nextURL := c.baseURL + "/repos/" + owner + "/" + repo + "/commits?author=" + url.QueryEscape(author) + "&since=" + url.QueryEscape(since.Format(time.RFC3339)) + "&per_page=100"
+	var items []repositoryanalysis.CommitItem
+
+	for nextURL != "" {
+		request, err := http.NewRequestWithContext(ctx, http.MethodGet, nextURL, nil)
+		if err != nil {
+			return nil, err
+		}
+		request.Header.Set("Accept", "application/vnd.github+json")
+		request.Header.Set("Authorization", "Bearer "+accessToken)
+		request.Header.Set("User-Agent", userAgent)
+		request.Header.Set("X-GitHub-Api-Version", gitHubAPIVersion)
+
+		response, err := c.httpClient.Do(request)
+		if err != nil {
+			return nil, classifyTransportError(err)
+		}
+
+		var payload []commitPayload
+		if err := decodeResponse(response, &payload); err != nil {
+			return nil, err
+		}
+
+		for _, item := range payload {
+			items = append(items, repositoryanalysis.CommitItem{
+				SHA:       item.SHA,
+				Message:   item.Commit.Message,
+				Committed: item.Commit.Author.Date,
+			})
+		}
+
+		nextURL = nextLink(response.Header.Get("Link"))
+	}
+
+	return items, nil
+}
+
+func decodeResponse(response *http.Response, target any) error {
+	defer func() {
+		_ = response.Body.Close()
+	}()
+
+	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
+		return classifyAPIError(response)
+	}
+
+	return json.NewDecoder(response.Body).Decode(target)
+}
+
 func nextLink(linkHeader string) string {
 	for _, link := range strings.Split(linkHeader, ",") {
 		section := strings.TrimSpace(link)
