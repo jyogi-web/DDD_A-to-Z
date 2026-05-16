@@ -1,5 +1,6 @@
-import { useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { AUDIO_ASSETS } from "../../features/audio/audioAssets";
+import { useAudioSettings } from "../../features/audio/useAudioSettings";
 import { PATHS } from "../../constants/paths";
 import { BackButton } from "../guild-town/BackButton";
 import { GuildBgm } from "../GuildBgm";
@@ -13,12 +14,50 @@ interface WarMapProps {
 }
 
 export function WarMap({ onNavigate }: WarMapProps) {
+  const { isSeEnabled } = useAudioSettings();
   const [isRankingOpen, setIsRankingOpen] = useState(false);
   const [selectedGuild, setSelectedGuild] = useState<WarGuild | null>(null);
+  const guildScoutSeRef = useRef<HTMLAudioElement | null>(null);
+  const rankingToggleSeRef = useRef<HTMLAudioElement | null>(null);
+  const scoutCloseSeRef = useRef<HTMLAudioElement | null>(null);
+
+  const playSe = useCallback(
+    (audio: HTMLAudioElement | null) => {
+      if (!audio || !isSeEnabled) {
+        return;
+      }
+
+      if (audio.preload === "none" && audio.readyState === HTMLMediaElement.HAVE_NOTHING) {
+        audio.load();
+      }
+
+      audio.currentTime = 0;
+      void audio.play().catch(() => {});
+    },
+    [isSeEnabled],
+  );
+
+  const selectGuild = useCallback(
+    (guild: WarGuild) => {
+      playSe(guildScoutSeRef.current);
+      setSelectedGuild(guild);
+    },
+    [playSe],
+  );
 
   const closeScout = () => {
     setSelectedGuild(null);
   };
+
+  const closeScoutWithSe = useCallback(() => {
+    playSe(scoutCloseSeRef.current);
+    setSelectedGuild(null);
+  }, [playSe]);
+
+  const toggleRankingWithSe = useCallback(() => {
+    playSe(rankingToggleSeRef.current);
+    setIsRankingOpen((isOpen) => !isOpen);
+  }, [playSe]);
 
   const handleWorldPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
     const target = event.target;
@@ -38,7 +77,28 @@ export function WarMap({ onNavigate }: WarMapProps) {
         color: "#fff8d7",
       }}
     >
-      <GuildBgm src={AUDIO_ASSETS.bgm.guildTown} />
+      <GuildBgm src={AUDIO_ASSETS.bgm.warMap} />
+      <audio
+        ref={guildScoutSeRef}
+        src={AUDIO_ASSETS.se.warGuildScout}
+        preload="none"
+        muted={!isSeEnabled}
+        aria-hidden="true"
+      />
+      <audio
+        ref={rankingToggleSeRef}
+        src={AUDIO_ASSETS.se.modalOpen}
+        preload="none"
+        muted={!isSeEnabled}
+        aria-hidden="true"
+      />
+      <audio
+        ref={scoutCloseSeRef}
+        src={AUDIO_ASSETS.se.modalCancel}
+        preload="none"
+        muted={!isSeEnabled}
+        aria-hidden="true"
+      />
 
       <div
         className="absolute left-0 top-0 h-screen w-screen"
@@ -97,13 +157,13 @@ export function WarMap({ onNavigate }: WarMapProps) {
             key={guild.id}
             guild={guild}
             isSelected={selectedGuild?.id === guild.id}
-            onSelect={setSelectedGuild}
+            onSelect={selectGuild}
           />
         ))}
       </div>
 
-      <RankingPanel isOpen={isRankingOpen} onToggle={() => setIsRankingOpen((isOpen) => !isOpen)} />
-      <ScoutPanel guild={selectedGuild} onClose={closeScout} />
+      <RankingPanel isOpen={isRankingOpen} onToggle={toggleRankingWithSe} />
+      <ScoutPanel guild={selectedGuild} onClose={closeScoutWithSe} />
       <BackButton onNavigate={onNavigate} targetPath={PATHS.HOME} />
 
       <div
