@@ -9,5 +9,4 @@ export const PATHS = {
   GUILD_MY_GUILD: "/guild/my-guild",
   GUILD_TOWN: "/guild/town",
   WAR: "/war",
-  WAR_MAP: "/war-map",
 } as const;

@@ -20,9 +20,9 @@ export function WarMapHex({ guild, isSelected, onSelect }: WarMapHexProps) {
         onSelect(guild);
       }}
       initial={{ opacity: 0, scale: 0.72 }}
-      animate={{ opacity: 1, scale: isSelected ? 1.12 : 1 }}
+      animate={{ opacity: 1, scale: isSelected ? 1.04 : 1 }}
       transition={{ duration: 0.26, ease: steppedEase(6) }}
-      whileHover={{ scale: isSelected ? 1.15 : 1.08 }}
+      whileHover={{ scale: isSelected ? 1.06 : 1.04 }}
       whileTap={{ scale: 0.96 }}
       style={{
         position: "absolute",

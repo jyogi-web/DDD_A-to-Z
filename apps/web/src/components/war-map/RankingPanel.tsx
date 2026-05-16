@@ -15,7 +15,7 @@ export function RankingPanel({ isOpen, onToggle }: RankingPanelProps) {
       style={{
         position: "fixed",
         left: "clamp(12px, 2vw, 24px)",
-        top: "calc(env(safe-area-inset-top, 0px) + clamp(12px, 2vw, 24px))",
+        top: "calc(env(safe-area-inset-top, 0px) + clamp(72px, 7vw, 88px))",
         zIndex: 12,
         pointerEvents: "none",
       }}

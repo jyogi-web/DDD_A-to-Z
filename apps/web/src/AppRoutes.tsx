@@ -62,7 +62,6 @@ export function AppRoutes() {
         <Route path={PATHS.GUILD_MY_GUILD} element={<MyGuildDetails onNavigate={navigate} />} />
         <Route path={PATHS.GUILD_TOWN} element={<GuildTown onNavigate={navigate} />} />
         <Route path={PATHS.WAR} element={<WarMap onNavigate={navigate} />} />
-        <Route path={PATHS.WAR_MAP} element={<WarMap onNavigate={navigate} />} />
         <Route path="*" element={<Navigate to={PATHS.ROOT} replace />} />
       </Routes>
     </>
