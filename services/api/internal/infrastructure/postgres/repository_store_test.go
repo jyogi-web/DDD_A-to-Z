@@ -94,10 +94,10 @@ func insertRepositoryTestUser(t *testing.T, ctx context.Context, tx *gorm.DB) us
 		t.Fatalf("github_accounts INSERT でエラーが発生しました: %v", err)
 	}
 	if err := tx.WithContext(ctx).Exec(`
-		INSERT INTO contribution_point_accounts (user_id, balance, created_at, updated_at)
-		VALUES (?, 0, ?, ?)
+		INSERT INTO point_accounts (user_id, point_type, balance, created_at, updated_at)
+		VALUES (?, 'CP', 0, ?, ?)
 	`, appUser.ID, now, now).Error; err != nil {
-		t.Fatalf("contribution_point_accounts INSERT でエラーが発生しました: %v", err)
+		t.Fatalf("point_accounts INSERT でエラーが発生しました: %v", err)
 	}
 
 	return appUser

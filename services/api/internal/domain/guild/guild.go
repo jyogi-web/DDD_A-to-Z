@@ -5,6 +5,8 @@ import (
 	"errors"
 	"strings"
 	"time"
+
+	"github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/user"
 )
 
 type ID string
@@ -20,6 +22,23 @@ type Guild struct {
 	MemberCount int64
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+}
+
+type MembershipID string
+
+type Membership struct {
+	ID        MembershipID
+	UserID    user.ID
+	GuildID   ID
+	JoinedAt  time.Time
+	LeftAt    *time.Time
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type MembershipWithGuild struct {
+	Membership Membership
+	Guild      Guild
 }
 
 func NewGuild(guild Guild) (Guild, error) {
@@ -55,6 +74,36 @@ func NewGuild(guild Guild) (Guild, error) {
 	}
 
 	return guild, nil
+}
+
+func NewMembership(membership Membership) (Membership, error) {
+	if membership.ID == "" {
+		return Membership{}, errors.New("guild membership id is required")
+	}
+	if membership.UserID == "" {
+		return Membership{}, errors.New("guild membership user id is required")
+	}
+	if membership.GuildID == "" {
+		return Membership{}, errors.New("guild membership guild id is required")
+	}
+	if membership.JoinedAt.IsZero() {
+		return Membership{}, errors.New("guild membership joined at is required")
+	}
+	if membership.LeftAt != nil && membership.LeftAt.Before(membership.JoinedAt) {
+		return Membership{}, errors.New("guild membership left at cannot be before joined at")
+	}
+	if membership.CreatedAt.IsZero() {
+		return Membership{}, errors.New("guild membership created at is required")
+	}
+	if membership.UpdatedAt.IsZero() {
+		return Membership{}, errors.New("guild membership updated at is required")
+	}
+
+	return membership, nil
+}
+
+func (m Membership) Active() bool {
+	return m.LeftAt == nil
 }
 
 func isHexColor(value string) bool {

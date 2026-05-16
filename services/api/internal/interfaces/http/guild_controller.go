@@ -1,8 +1,10 @@
 package http
 
 import (
+	"errors"
 	"log/slog"
 	stdhttp "net/http"
+	"time"
 
 	guildapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/guild"
 	guilddomain "github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/guild"
@@ -22,6 +24,8 @@ func NewGuildController(usecase *guildapp.UseCase, logger *slog.Logger) *GuildCo
 
 func (c *GuildController) RegisterRoutes(mux *stdhttp.ServeMux) {
 	mux.HandleFunc("GET /guilds", c.listGuilds)
+	mux.HandleFunc("POST /guilds/{guildID}/join", c.joinGuild)
+	mux.HandleFunc("GET /me/guild", c.getMyGuild)
 }
 
 func (c *GuildController) listGuilds(w stdhttp.ResponseWriter, r *stdhttp.Request) {
@@ -39,19 +43,89 @@ func (c *GuildController) listGuilds(w stdhttp.ResponseWriter, r *stdhttp.Reques
 	}
 }
 
+func (c *GuildController) joinGuild(w stdhttp.ResponseWriter, r *stdhttp.Request) {
+	cookie, err := r.Cookie(sessionCookieName)
+	if err != nil {
+		c.writeError(w, guildapp.ErrUnauthenticated)
+		return
+	}
+
+	membership, err := c.usecase.JoinGuild(r.Context(), cookie.Value, guilddomain.ID(r.PathValue("guildID")))
+	if err != nil {
+		c.writeError(w, err)
+		return
+	}
+
+	if err := writeJSON(w, stdhttp.StatusCreated, membershipResponse(membership)); err != nil {
+		c.logger.Error("failed to write guild join response", "error", err)
+	}
+}
+
+func (c *GuildController) getMyGuild(w stdhttp.ResponseWriter, r *stdhttp.Request) {
+	cookie, err := r.Cookie(sessionCookieName)
+	if err != nil {
+		c.writeError(w, guildapp.ErrUnauthenticated)
+		return
+	}
+
+	membership, ok, err := c.usecase.GetMyGuild(r.Context(), cookie.Value)
+	if err != nil {
+		c.writeError(w, err)
+		return
+	}
+	if !ok {
+		if err := writeJSON(w, stdhttp.StatusOK, map[string]any{"guild": nil}); err != nil {
+			c.logger.Error("failed to write empty my guild response", "error", err)
+		}
+		return
+	}
+
+	if err := writeJSON(w, stdhttp.StatusOK, membershipResponse(membership)); err != nil {
+		c.logger.Error("failed to write my guild response", "error", err)
+	}
+}
+
+func (c *GuildController) writeError(w stdhttp.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, guildapp.ErrUnauthenticated):
+		writeAPIError(w, stdhttp.StatusUnauthorized, "unauthenticated", "unauthenticated", 0, nil)
+	case errors.Is(err, guildapp.ErrGuildNotFound):
+		writeAPIError(w, stdhttp.StatusNotFound, "guild_not_found", "guild not found", 0, nil)
+	case errors.Is(err, guildapp.ErrAlreadyJoined):
+		writeAPIError(w, stdhttp.StatusConflict, "already_joined_guild", "user already joined a guild", 0, nil)
+	default:
+		c.logger.Error("guild request failed", "error", err)
+		writeAPIError(w, stdhttp.StatusInternalServerError, "internal_error", "Internal Server Error", 0, nil)
+	}
+}
+
 func guildResponses(guilds []guilddomain.Guild) []map[string]any {
 	responses := make([]map[string]any, 0, len(guilds))
 	for _, guild := range guilds {
-		responses = append(responses, map[string]any{
-			"id":           guild.ID,
-			"slug":         guild.Slug,
-			"name":         guild.Name,
-			"description":  guild.Description,
-			"icon":         guild.Icon,
-			"color":        guild.Color,
-			"member_count": guild.MemberCount,
-		})
+		responses = append(responses, guildResponse(guild))
 	}
 
 	return responses
+}
+
+func membershipResponse(membership guilddomain.MembershipWithGuild) map[string]any {
+	return map[string]any{
+		"guild": guildResponse(membership.Guild),
+		"membership": map[string]any{
+			"id":        membership.Membership.ID,
+			"joined_at": membership.Membership.JoinedAt.Format(time.RFC3339),
+		},
+	}
+}
+
+func guildResponse(guild guilddomain.Guild) map[string]any {
+	return map[string]any{
+		"id":           guild.ID,
+		"slug":         guild.Slug,
+		"name":         guild.Name,
+		"description":  guild.Description,
+		"icon":         guild.Icon,
+		"color":        guild.Color,
+		"member_count": guild.MemberCount,
+	}
 }
