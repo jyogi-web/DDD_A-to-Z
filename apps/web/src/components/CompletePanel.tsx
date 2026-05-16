@@ -156,7 +156,7 @@ export function CompletePanel({ result, onContinue }: CompletePanelProps) {
             marginBottom: "0.3rem",
           }}
         >
-          TOTAL BALANCE
+          TOTAL CP
         </div>
         <motion.span
           initial={{ scale: 0.5 }}
