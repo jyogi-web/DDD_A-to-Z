@@ -308,6 +308,58 @@ func (c *RepositoryClient) ListCommits(ctx context.Context, accessToken, owner, 
 	return items, nil
 }
 
+type pullRequestPayload struct {
+	Number    int       `json:"number"`
+	Title     string    `json:"title"`
+	CreatedAt time.Time `json:"created_at"`
+	HTMLURL   string    `json:"html_url"`
+	State     string    `json:"state"`
+	User      struct {
+		Login string `json:"login"`
+	} `json:"user"`
+}
+
+func (c *RepositoryClient) ListPullRequests(ctx context.Context, accessToken, owner, repo, author string, since time.Time) ([]repositoryanalysis.PullRequestItem, error) {
+	nextURL := c.baseURL + "/repos/" + owner + "/" + repo + "/pulls?state=all&sort=created&direction=desc&per_page=100"
+	var items []repositoryanalysis.PullRequestItem
+
+	for nextURL != "" {
+		request, err := http.NewRequestWithContext(ctx, http.MethodGet, nextURL, nil)
+		if err != nil {
+			return nil, err
+		}
+		request.Header.Set("Accept", "application/vnd.github+json")
+		request.Header.Set("Authorization", "Bearer "+accessToken)
+		request.Header.Set("User-Agent", userAgent)
+		request.Header.Set("X-GitHub-Api-Version", gitHubAPIVersion)
+
+		response, err := c.httpClient.Do(request)
+		if err != nil {
+			return nil, classifyTransportError(err)
+		}
+
+		var payload []pullRequestPayload
+		if err := decodeResponse(response, &payload); err != nil {
+			return nil, err
+		}
+
+		for _, item := range payload {
+			if item.User.Login != author || item.CreatedAt.Before(since) {
+				continue
+			}
+			items = append(items, repositoryanalysis.PullRequestItem{
+				Number:    item.Number,
+				Title:     item.Title,
+				CreatedAt: item.CreatedAt,
+			})
+		}
+
+		nextURL = nextLink(response.Header.Get("Link"))
+	}
+
+	return items, nil
+}
+
 func decodeResponse(response *http.Response, target any) error {
 	defer func() {
 		_ = response.Body.Close()
