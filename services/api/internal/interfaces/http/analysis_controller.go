@@ -43,6 +43,7 @@ func (c *AnalysisController) analyzeContribution(w stdhttp.ResponseWriter, r *st
 	for _, c := range result.Contributions {
 		contributions = append(contributions, map[string]any{
 			"repo":      c.Repo,
+			"type":      c.Type,
 			"message":   c.Message,
 			"language":  c.Language,
 			"cp":        c.CP,
@@ -62,6 +63,7 @@ func (c *AnalysisController) analyzeContribution(w stdhttp.ResponseWriter, r *st
 		"totalCommits":      result.TotalCommits,
 		"totalPRs":          result.TotalPRs,
 		"totalCP":           result.TotalCP,
+		"totalBalance":      result.TotalBalance,
 		"languageBreakdown": breakdown,
 		"contributions":     contributions,
 	}); err != nil {

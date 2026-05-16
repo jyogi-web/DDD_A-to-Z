@@ -20,6 +20,7 @@ export interface AnalysisResult {
   totalCommits: number;
   totalPRs: number;
   totalCP: number;
+  totalBalance: number;
   languageBreakdown: LanguageBreakdown[];
   contributions: ContributionItem[];
 }
@@ -140,12 +141,44 @@ export function CompletePanel({ result, onContinue }: CompletePanelProps) {
         </div>
       </motion.div>
 
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.8, duration: 0.5, ease: steppedEase(6) }}
+        style={{ textAlign: "center", padding: "0.5rem 0" }}
+      >
+        <div
+          style={{
+            fontFamily: "var(--font-press)",
+            fontSize: "0.5rem",
+            color: "var(--color-pixel-white)",
+            letterSpacing: "0.2em",
+            marginBottom: "0.3rem",
+          }}
+        >
+          TOTAL BALANCE
+        </div>
+        <motion.span
+          initial={{ scale: 0.5 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: 1, type: "spring", stiffness: 150, damping: 8 }}
+          style={{
+            fontFamily: "var(--font-press)",
+            fontSize: "2rem",
+            color: "var(--color-gold)",
+            textShadow: "0 0 20px rgba(255, 215, 0, 0.4), 4px 4px 0 rgba(0,0,0,0.5)",
+          }}
+        >
+          {result.totalBalance}
+        </motion.span>
+      </motion.div>
+
       <Divider />
 
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.7, duration: 0.4 }}
+        transition={{ delay: 1.1, duration: 0.4 }}
       >
         <SectionLabel text="LANGUAGE BREAKDOWN" />
         <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "0.8rem" }}>
@@ -158,7 +191,7 @@ export function CompletePanel({ result, onContinue }: CompletePanelProps) {
                 key={lang.name}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.8 + i * 0.12, duration: 0.4, ease: steppedEase(6) }}
+                transition={{ delay: 1.2 + i * 0.12, duration: 0.4, ease: steppedEase(6) }}
               >
                 <div
                   style={{
@@ -194,7 +227,7 @@ export function CompletePanel({ result, onContinue }: CompletePanelProps) {
                       animate={{
                         width: result.totalCP === 0 ? "0%" : `${(lang.cp / result.totalCP) * 100}%`,
                       }}
-                      transition={{ delay: 1 + i * 0.12, duration: 0.6, ease: steppedEase(8) }}
+                      transition={{ delay: 1.2 + i * 0.12, duration: 0.6, ease: steppedEase(8) }}
                       style={{
                         height: "100%",
                         background: `linear-gradient(90deg, ${color}80, ${color})`,
@@ -228,7 +261,7 @@ export function CompletePanel({ result, onContinue }: CompletePanelProps) {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 1.4, duration: 0.4 }}
+        transition={{ delay: 1.8, duration: 0.4 }}
       >
         <SectionLabel text="RECENT CONTRIBUTIONS" />
         <div
@@ -248,7 +281,7 @@ export function CompletePanel({ result, onContinue }: CompletePanelProps) {
                 key={i}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 1.5 + i * 0.05, duration: 0.3 }}
+                transition={{ delay: 1.9 + i * 0.05, duration: 0.3 }}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -315,7 +348,7 @@ export function CompletePanel({ result, onContinue }: CompletePanelProps) {
         onClick={onContinue}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 2, duration: 0.4 }}
+        transition={{ delay: 2.5, duration: 0.4 }}
         style={{
           marginTop: "0.5rem",
           width: "100%",

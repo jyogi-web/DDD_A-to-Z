@@ -28,10 +28,18 @@ type GitHubCommitClient interface {
 	ListCommits(ctx context.Context, accessToken, owner, repo, author string, since time.Time) ([]repositoryanalysis.CommitItem, error)
 }
 
+type GitHubPRClient interface {
+	ListPullRequests(ctx context.Context, accessToken, owner, repo, author string, since time.Time) ([]repositoryanalysis.PullRequestItem, error)
+}
+
 type GitHubLanguageClient interface {
 	ListLanguages(ctx context.Context, accessToken, owner, repo string) (map[string]int64, error)
 }
 
 type CPEarner interface {
 	Earn(ctx context.Context, userID user.ID, amount int64, reason, sourceType, sourceID string) error
+}
+
+type CPBalanceProvider interface {
+	GetBalance(ctx context.Context, userID user.ID) (int64, error)
 }

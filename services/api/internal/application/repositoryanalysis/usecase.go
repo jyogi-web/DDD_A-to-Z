@@ -16,14 +16,18 @@ var (
 	ErrMissingGitHubToken = errors.New("github token is missing")
 )
 
+const prCP = 5
+
 type UseCase struct {
 	current   CurrentUserRepository
 	tokens    TokenRepository
 	repos     RepositoryClient
 	repoStore RepositoryStore
 	commits   GitHubCommitClient
+	prs       GitHubPRClient
 	languages GitHubLanguageClient
 	cp        CPEarner
+	cpBalance CPBalanceProvider
 	now       func() time.Time
 }
 
@@ -33,8 +37,10 @@ func NewUseCase(
 	repos RepositoryClient,
 	repoStore RepositoryStore,
 	commits GitHubCommitClient,
+	prs GitHubPRClient,
 	languages GitHubLanguageClient,
 	cp CPEarner,
+	cpBalance CPBalanceProvider,
 ) *UseCase {
 	return &UseCase{
 		current:   current,
@@ -42,8 +48,10 @@ func NewUseCase(
 		repos:     repos,
 		repoStore: repoStore,
 		commits:   commits,
+		prs:       prs,
 		languages: languages,
 		cp:        cp,
+		cpBalance: cpBalance,
 		now:       time.Now,
 	}
 }
@@ -52,6 +60,7 @@ type AnalysisResult struct {
 	TotalCommits      int64                                     `json:"totalCommits"`
 	TotalPRs          int64                                     `json:"totalPRs"`
 	TotalCP           int64                                     `json:"totalCP"`
+	TotalBalance      int64                                     `json:"totalBalance"`
 	LanguageBreakdown []repositoryanalysis.LanguageContribution `json:"languageBreakdown"`
 	Contributions     []repositoryanalysis.Contribution         `json:"contributions"`
 }
@@ -88,6 +97,7 @@ func (u *UseCase) Analyze(ctx context.Context, sessionToken string) (AnalysisRes
 	since := now.Add(analysisPeriod)
 
 	var totalCommits int64
+	var totalPRs int64
 	langCP := map[string]int64{}
 	var contributions []repositoryanalysis.Contribution
 	username := appUser.GitHubAccount.Username
@@ -99,10 +109,15 @@ func (u *UseCase) Analyze(ctx context.Context, sessionToken string) (AnalysisRes
 
 		commits, err := u.commits.ListCommits(ctx, accessToken, repo.Owner, repo.Name, username, since)
 		if err != nil {
-			continue
+			commits = nil
 		}
 
-		if len(commits) == 0 {
+		prs, err := u.prs.ListPullRequests(ctx, accessToken, repo.Owner, repo.Name, username, since)
+		if err != nil {
+			prs = nil
+		}
+
+		if len(commits) == 0 && len(prs) == 0 {
 			continue
 		}
 
@@ -120,8 +135,9 @@ func (u *UseCase) Analyze(ctx context.Context, sessionToken string) (AnalysisRes
 			totalBytes = 1
 		}
 
-		repoCP := int64(len(commits))
-		totalCommits += repoCP
+		repoCP := int64(len(commits)) + int64(len(prs))*prCP
+		totalCommits += int64(len(commits))
+		totalPRs += int64(len(prs))
 
 		type langAlloc struct {
 			name string
@@ -165,10 +181,21 @@ func (u *UseCase) Analyze(ctx context.Context, sessionToken string) (AnalysisRes
 		for _, c := range commits {
 			contributions = append(contributions, repositoryanalysis.Contribution{
 				Repo:      repo.FullName,
+				Type:      "commit",
 				Message:   c.Message,
 				Language:  primaryLang,
 				CP:        1,
 				Timestamp: c.Committed,
+			})
+		}
+		for _, pr := range prs {
+			contributions = append(contributions, repositoryanalysis.Contribution{
+				Repo:      repo.FullName,
+				Type:      "pull_request",
+				Message:   pr.Title,
+				Language:  primaryLang,
+				CP:        prCP,
+				Timestamp: pr.CreatedAt,
 			})
 		}
 	}
@@ -192,6 +219,11 @@ func (u *UseCase) Analyze(ctx context.Context, sessionToken string) (AnalysisRes
 		}
 	}
 
+	balance, err := u.cpBalance.GetBalance(ctx, appUser.ID)
+	if err != nil {
+		return AnalysisResult{}, err
+	}
+
 	sort.Slice(contributions, func(i, j int) bool {
 		return contributions[i].Timestamp.After(contributions[j].Timestamp)
 	})
@@ -201,8 +233,9 @@ func (u *UseCase) Analyze(ctx context.Context, sessionToken string) (AnalysisRes
 
 	return AnalysisResult{
 		TotalCommits:      totalCommits,
-		TotalPRs:          0,
+		TotalPRs:          totalPRs,
 		TotalCP:           totalCP,
+		TotalBalance:      balance,
 		LanguageBreakdown: breakdown,
 		Contributions:     contributions,
 	}, nil

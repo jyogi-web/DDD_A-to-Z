@@ -70,12 +70,12 @@ func main() {
 	}
 }
 
-type cpEarner struct {
+type cpManager struct {
 	inner *contributionpointapp.UseCase
 }
 
-func (e *cpEarner) Earn(ctx context.Context, userID user.ID, amount int64, reason, sourceType, sourceID string) error {
-	_, err := e.inner.Earn(ctx, contributionpointapp.EarnCommand{
+func (m *cpManager) Earn(ctx context.Context, userID user.ID, amount int64, reason, sourceType, sourceID string) error {
+	_, err := m.inner.Earn(ctx, contributionpointapp.EarnCommand{
 		UserID:     userID,
 		Amount:     amount,
 		Reason:     reason,
@@ -83,6 +83,10 @@ func (e *cpEarner) Earn(ctx context.Context, userID user.ID, amount int64, reaso
 		SourceID:   sourceID,
 	})
 	return err
+}
+
+func (m *cpManager) GetBalance(ctx context.Context, userID user.ID) (int64, error) {
+	return m.inner.GetBalance(ctx, userID)
 }
 
 func buildControllers(logger *slog.Logger, db *gorm.DB) (*httpapi.AuthController, *httpapi.RepositoryController, *httpapi.AnalysisController, error) {
@@ -144,7 +148,9 @@ func buildControllers(logger *slog.Logger, db *gorm.DB) (*httpapi.AuthController
 		repositoryStore,
 		repositoryClient,
 		repositoryClient,
-		&cpEarner{inner: cpUseCase},
+		repositoryClient,
+		&cpManager{inner: cpUseCase},
+		&cpManager{inner: cpUseCase},
 	)
 	analysisController := httpapi.NewAnalysisController(analysisUseCase, logger)
 
