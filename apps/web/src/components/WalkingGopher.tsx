@@ -19,9 +19,7 @@ export function WalkingGopher({ onTalk }: { onTalk: () => void }) {
   const [reactionCount, setReactionCount] = useState(0);
   const walkRow = direction === "right" ? 1 : 2;
   const speechBubbleSide =
-    direction === "right"
-      ? { left: "104px", right: "auto" }
-      : { left: "auto", right: "96px" };
+    direction === "right" ? { left: "104px", right: "auto" } : { left: "auto", right: "96px" };
 
   useEffect(() => {
     return () => {

@@ -11,7 +11,11 @@ import (
 	authapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/auth"
 	contributionpointapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/contributionpoint"
 	githubapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/github"
+	guildapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/guild"
+	mypageapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/mypage"
+	profileapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/profile"
 	analysisapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/repositoryanalysis"
+	contributionpointdomain "github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/contributionpoint"
 	"github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/user"
 	"github.com/jyogi-web/ddd-a-to-z/services/api/internal/infrastructure/config"
 	"github.com/jyogi-web/ddd-a-to-z/services/api/internal/infrastructure/database"
@@ -47,7 +51,7 @@ func main() {
 		}
 	}()
 
-	authController, repositoryController, analysisController, err := buildControllers(logger, db)
+	authController, repositoryController, guildController, mypageController, profileController, analysisController, err := buildControllers(logger, db)
 	if err != nil {
 		logger.Error("failed to build controllers", "error", err)
 		os.Exit(1)
@@ -58,7 +62,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:              ":" + addr,
-		Handler:           httpapi.NewRouter(logger, authController, repositoryController, analysisController),
+		Handler:           httpapi.NewRouter(logger, authController, repositoryController, guildController, mypageController, profileController, analysisController),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       5 * time.Minute,
 		WriteTimeout:      5 * time.Minute,
@@ -77,6 +81,7 @@ type cpManager struct {
 func (m *cpManager) Earn(ctx context.Context, userID user.ID, amount int64, reason, sourceType, sourceID string) error {
 	_, err := m.inner.Earn(ctx, contributionpointapp.EarnCommand{
 		UserID:     userID,
+		PointType:  contributionpointdomain.PointTypeCP,
 		Amount:     amount,
 		Reason:     reason,
 		SourceType: sourceType,
@@ -86,29 +91,29 @@ func (m *cpManager) Earn(ctx context.Context, userID user.ID, amount int64, reas
 }
 
 func (m *cpManager) GetBalance(ctx context.Context, userID user.ID) (int64, error) {
-	return m.inner.GetBalance(ctx, userID)
+	return m.inner.GetBalance(ctx, userID, contributionpointdomain.PointTypeCP)
 }
 
-func buildControllers(logger *slog.Logger, db *gorm.DB) (*httpapi.AuthController, *httpapi.RepositoryController, *httpapi.AnalysisController, error) {
+func buildControllers(logger *slog.Logger, db *gorm.DB) (*httpapi.AuthController, *httpapi.RepositoryController, *httpapi.GuildController, *httpapi.MypageController, *httpapi.ProfileController, *httpapi.AnalysisController, error) {
 	oauthConfig, err := config.GitHubOAuthFromEnv()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, err
 	}
 	cookieSecret, err := config.AuthCookieSecretFromEnv()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, err
 	}
 	cookieSecure, err := config.AuthCookieSecureFromEnv()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, err
 	}
 	tokenSecret, err := config.GitHubTokenEncryptionSecretFromEnv()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, err
 	}
 	tokenCipher, err := security.NewTokenCipher(tokenSecret)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, err
 	}
 	frontendURL := config.EnvOrDefault("FRONTEND_URL", "http://localhost:5173")
 
@@ -116,6 +121,13 @@ func buildControllers(logger *slog.Logger, db *gorm.DB) (*httpapi.AuthController
 	repositoryClient := infragithub.NewRepositoryClient(nil)
 	authStore := postgres.NewAuthStore(db, tokenCipher)
 	repositoryStore := postgres.NewRepositoryStore(db)
+	contributionPointStore := postgres.NewContributionPointStore(db)
+	mypageStore := postgres.NewMyPageStore(db)
+	profileStore := postgres.NewProfileStore(db)
+	guildStore, err := postgres.NewGuildStore(db)
+	if err != nil {
+		return nil, nil, nil, nil, nil, nil, err
+	}
 	usecase := authapp.NewUseCase(
 		oauthClient,
 		authStore,
@@ -129,6 +141,23 @@ func buildControllers(logger *slog.Logger, db *gorm.DB) (*httpapi.AuthController
 		repositoryClient,
 		repositoryStore,
 	)
+	guildUseCase := guildapp.NewUseCase(guildStore)
+
+	// MyPage use case: compose CP reader from existing ContributionPointStore (balance)
+	// and MyPageStore (total earned/spent, repository summary).
+	mypageCPReader := &compositeCPReader{
+		balance: contributionPointStore,
+		totals:  mypageStore,
+	}
+	mypageUseCase := mypageapp.NewUseCase(
+		authStore,
+		mypageCPReader,
+		mypageStore,
+	)
+	profileUseCase := profileapp.NewUseCase(
+		authStore,
+		profileStore,
+	)
 
 	authController := httpapi.NewAuthController(
 		usecase,
@@ -138,9 +167,12 @@ func buildControllers(logger *slog.Logger, db *gorm.DB) (*httpapi.AuthController
 		frontendURL,
 	)
 	repositoryController := httpapi.NewRepositoryController(repositoryUseCase, logger)
+	guildController := httpapi.NewGuildController(guildUseCase, logger)
+	mypageController := httpapi.NewMypageController(mypageUseCase, logger)
+	profileController := httpapi.NewProfileController(profileUseCase, logger)
 
-	cpStore := postgres.NewContributionPointStore(db)
-	cpUseCase := contributionpointapp.NewUseCase(cpStore, security.NewIDGenerator("cp"))
+	cpUseCase := contributionpointapp.NewUseCase(contributionPointStore, security.NewIDGenerator("cp"))
+	cpManager := &cpManager{inner: cpUseCase}
 	analysisUseCase := analysisapp.NewUseCase(
 		authStore,
 		authStore,
@@ -149,10 +181,34 @@ func buildControllers(logger *slog.Logger, db *gorm.DB) (*httpapi.AuthController
 		repositoryClient,
 		repositoryClient,
 		repositoryClient,
-		&cpManager{inner: cpUseCase},
-		&cpManager{inner: cpUseCase},
+		cpManager,
+		cpManager,
 	)
 	analysisController := httpapi.NewAnalysisController(analysisUseCase, logger)
 
-	return authController, repositoryController, analysisController, nil
+	return authController, repositoryController, guildController, mypageController, profileController, analysisController, nil
+}
+
+// compositeCPReader combines the existing ContributionPointStore (for balance)
+// with MyPageStore (for total earned/spent) to satisfy the mypage.ContributionPointReader port.
+type compositeCPReader struct {
+	balance interface {
+		GetBalance(ctx context.Context, userID user.ID, pointType contributionpointdomain.PointType) (int64, error)
+	}
+	totals interface {
+		GetTotalEarned(ctx context.Context, userID user.ID) (int64, error)
+		GetTotalSpent(ctx context.Context, userID user.ID) (int64, error)
+	}
+}
+
+func (c *compositeCPReader) GetBalance(ctx context.Context, userID user.ID) (int64, error) {
+	return c.balance.GetBalance(ctx, userID, contributionpointdomain.PointTypeCP)
+}
+
+func (c *compositeCPReader) GetTotalEarned(ctx context.Context, userID user.ID) (int64, error) {
+	return c.totals.GetTotalEarned(ctx, userID)
+}
+
+func (c *compositeCPReader) GetTotalSpent(ctx context.Context, userID user.ID) (int64, error) {
+	return c.totals.GetTotalSpent(ctx, userID)
 }

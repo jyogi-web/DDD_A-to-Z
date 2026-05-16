@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useAudioSettings } from "../features/audio/useAudioSettings";
 
 const loadOnDemand = (audio: HTMLAudioElement) => {
@@ -8,67 +8,14 @@ const loadOnDemand = (audio: HTMLAudioElement) => {
 };
 
 export function useHomeAudio(onNavigate: (path: string) => void | Promise<void>) {
-  const { isBgmEnabled, isSeEnabled } = useAudioSettings();
-  const homeBgmRef = useRef<HTMLAudioElement | null>(null);
+  const { isSeEnabled } = useAudioSettings();
+  const navigationInProgressRef = useRef(false);
+  const homeNavSelectSeRef = useRef<HTMLAudioElement | null>(null);
   const confirmModalSeRef = useRef<HTMLAudioElement | null>(null);
   const modalCancelSeRef = useRef<HTMLAudioElement | null>(null);
   const returnTitleSeRef = useRef<HTMLAudioElement | null>(null);
   const gopherTalkSeRef = useRef<HTMLAudioElement | null>(null);
   const [audioError, setAudioError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const audio = homeBgmRef.current;
-    if (!audio) {
-      return;
-    }
-
-    let isUnlocked = false;
-    audio.volume = 0.34;
-
-    const removeUnlockListeners = () => {
-      window.removeEventListener("pointerdown", unlockBgm);
-      window.removeEventListener("keydown", unlockBgm);
-    };
-
-    const playBgm = () => {
-      if (isUnlocked) {
-        return;
-      }
-
-      void audio
-        .play()
-        .then(() => {
-          isUnlocked = true;
-          removeUnlockListeners();
-        })
-        .catch(() => {
-          // ブラウザの自動再生制限で止められた場合は、最初のユーザー操作で再試行する。
-        });
-    };
-
-    const unlockBgm = () => {
-      playBgm();
-    };
-
-    playBgm();
-    window.addEventListener("pointerdown", unlockBgm);
-    window.addEventListener("keydown", unlockBgm);
-
-    return () => {
-      removeUnlockListeners();
-      audio.pause();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (homeBgmRef.current) {
-      homeBgmRef.current.muted = !isBgmEnabled;
-
-      if (isBgmEnabled) {
-        void homeBgmRef.current.play().catch(() => {});
-      }
-    }
-  }, [isBgmEnabled]);
 
   const playSe = useCallback(
     (audio: HTMLAudioElement | null) => {
@@ -124,6 +71,11 @@ export function useHomeAudio(onNavigate: (path: string) => void | Promise<void>)
   }, [playSe]);
 
   const playReturnTitle = useCallback(async () => {
+    if (navigationInProgressRef.current) {
+      return;
+    }
+
+    navigationInProgressRef.current = true;
     try {
       setAudioError(null);
       await playSeUntilEnd(returnTitleSeRef.current);
@@ -131,6 +83,8 @@ export function useHomeAudio(onNavigate: (path: string) => void | Promise<void>)
     } catch (error) {
       console.error("failed to return to title from home", error);
       setAudioError("タイトル画面への移動に失敗しました。");
+    } finally {
+      navigationInProgressRef.current = false;
     }
   }, [onNavigate, playSeUntilEnd]);
 
@@ -138,18 +92,39 @@ export function useHomeAudio(onNavigate: (path: string) => void | Promise<void>)
     playSe(gopherTalkSeRef.current);
   }, [playSe]);
 
+  const playHomeNavSelect = useCallback(
+    async (path: string) => {
+      if (navigationInProgressRef.current) {
+        return;
+      }
+
+      navigationInProgressRef.current = true;
+      try {
+        setAudioError(null);
+        await playSeUntilEnd(homeNavSelectSeRef.current);
+        await onNavigate(path);
+      } catch (error) {
+        console.error("failed to navigate from home", error);
+        setAudioError("画面移動に失敗しました。");
+      } finally {
+        navigationInProgressRef.current = false;
+      }
+    },
+    [onNavigate, playSeUntilEnd],
+  );
+
   return {
     audioRefs: {
-      homeBgmRef,
+      homeNavSelectSeRef,
       confirmModalSeRef,
       modalCancelSeRef,
       returnTitleSeRef,
       gopherTalkSeRef,
     },
     audioError,
-    isBgmEnabled,
     isSeEnabled,
     playGopherTalk,
+    playHomeNavSelect,
     playModalCancel,
     playModalOpen,
     playReturnTitle,

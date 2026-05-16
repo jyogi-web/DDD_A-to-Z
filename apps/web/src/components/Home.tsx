@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { HomeHud } from "./HomeHud";
 import { HomeNav } from "./HomeNav";
 import { ReturnTitleDialog } from "./ReturnTitleDialog";
@@ -6,6 +6,7 @@ import { AudioTogglePanel } from "./AudioTogglePanel";
 import { WalkingGopher } from "./WalkingGopher";
 import { useHomeAudio } from "../hooks/useHomeAudio";
 import { AUDIO_ASSETS } from "../features/audio/audioAssets";
+import { fetchProfile, type Profile } from "../features/profile/api";
 
 interface HomeProps {
   onNavigate: (path: string) => void | Promise<void>;
@@ -37,13 +38,19 @@ export function Home({ onNavigate }: HomeProps) {
   const {
     audioRefs,
     audioError,
-    isBgmEnabled,
     isSeEnabled,
     playGopherTalk,
+    playHomeNavSelect,
     playModalCancel,
     playModalOpen,
     playReturnTitle,
   } = useHomeAudio(onNavigate);
+
+  const [profile, setProfile] = useState<Profile | null>(null);
+
+  useEffect(() => {
+    fetchProfile().then(setProfile).catch(console.error);
+  }, []);
 
   const cancelReturnTitle = () => {
     playModalCancel();
@@ -72,11 +79,10 @@ export function Home({ onNavigate }: HomeProps) {
       }}
     >
       <audio
-        ref={audioRefs.homeBgmRef}
-        src={AUDIO_ASSETS.bgm.home}
-        loop
-        preload="auto"
-        muted={!isBgmEnabled}
+        ref={audioRefs.homeNavSelectSeRef}
+        src={AUDIO_ASSETS.se.homeNavSelect}
+        preload="none"
+        muted={!isSeEnabled}
         aria-hidden="true"
       />
       <audio
@@ -145,7 +151,11 @@ export function Home({ onNavigate }: HomeProps) {
           gap: "20px",
         }}
       >
-        <HomeHud guild={guild} player={player} onReturnTitle={openReturnTitleDialog} />
+        <HomeHud 
+          guild={guild} 
+          player={{ ...player, name: profile?.display_name || player.name }} 
+          onReturnTitle={openReturnTitleDialog} 
+        />
 
         <section
           aria-label="Character placement area"
@@ -158,7 +168,7 @@ export function Home({ onNavigate }: HomeProps) {
           <WalkingGopher onTalk={playGopherTalk} />
         </section>
 
-        <HomeNav items={navItems} onNavigate={onNavigate} />
+        <HomeNav items={navItems} onNavigate={playHomeNavSelect} />
       </div>
 
       {isReturnTitleDialogOpen && (
