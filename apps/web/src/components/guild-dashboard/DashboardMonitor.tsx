@@ -1,16 +1,30 @@
 import { AnimatePresence, motion } from "framer-motion";
+import type { DisplayGuild } from "../../features/guild/presentation";
 import { steppedEase } from "../../lib/animationUtils";
 import { ActivityLogPanel, RankingsPanel } from "./DashboardPanels";
 import type { ActivityLog, GuildTab } from "./types";
 
 interface DashboardMonitorProps {
   activeTab: GuildTab;
+  guild: DisplayGuild | null;
+  isGuildLoading: boolean;
   logs: ActivityLog[];
   onSwitchTab: (tab: GuildTab) => void;
   tabs: { id: GuildTab; label: string }[];
 }
 
-export function DashboardMonitor({ activeTab, logs, onSwitchTab, tabs }: DashboardMonitorProps) {
+export function DashboardMonitor({
+  activeTab,
+  guild,
+  isGuildLoading,
+  logs,
+  onSwitchTab,
+  tabs,
+}: DashboardMonitorProps) {
+  const guildName = isGuildLoading ? "SYNCING GUILD" : guild ? `${guild.name} GUILD` : "NO GUILD";
+  const guildRank = guild ? `Rank: #${guild.sortOrder + 1}` : "Rank: --";
+  const guildCp = guild ? `Last CP: ${guild.previousSeasonCp.toLocaleString()}` : "Last CP: --";
+
   return (
     <motion.section
       initial={{ opacity: 0, scaleY: 0.94 }}
@@ -50,9 +64,11 @@ export function DashboardMonitor({ activeTab, logs, onSwitchTab, tabs }: Dashboa
             lineHeight: 1.5,
           }}
         >
-          <strong style={{ color: "#9be7ff", overflowWrap: "anywhere" }}>TypeScript GUILD</strong>
-          <span style={{ color: "#ffd966", whiteSpace: "nowrap" }}>Rank: #3</span>
-          <span style={{ color: "#74f7a1", whiteSpace: "nowrap" }}>Total CP: 125,400</span>
+          <strong style={{ color: guild?.accent ?? "#9be7ff", overflowWrap: "anywhere" }}>
+            {guildName}
+          </strong>
+          <span style={{ color: "#ffd966", whiteSpace: "nowrap" }}>{guildRank}</span>
+          <span style={{ color: "#74f7a1", whiteSpace: "nowrap" }}>{guildCp}</span>
         </div>
 
         <nav
