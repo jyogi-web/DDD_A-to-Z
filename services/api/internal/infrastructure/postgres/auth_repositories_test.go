@@ -72,11 +72,15 @@ func TestAuthStoreFindOrCreateByGitHub(t *testing.T) {
 		}
 
 		var balance int64
-		if err := tx.WithContext(ctx).Raw("SELECT balance FROM contribution_point_accounts WHERE user_id = ?", wantUserID).Scan(&balance).Error; err != nil {
-			t.Fatalf("contribution_point_accounts の初期残高取得でエラーが発生しました: %v", err)
+		result := tx.WithContext(ctx).Raw("SELECT balance FROM point_accounts WHERE user_id = ? AND point_type = 'CP'", wantUserID).Scan(&balance)
+		if err := result.Error; err != nil {
+			t.Fatalf("point_accounts の初期残高取得でエラーが発生しました: %v", err)
+		}
+		if result.RowsAffected == 0 {
+			t.Fatalf("point_accounts に user_id=%q の初期CP口座が作成されていません: balance = %d", wantUserID, balance)
 		}
 		if balance != 0 {
-			t.Fatalf("contribution_point_accounts.balance = %d, 期待値 0", balance)
+			t.Fatalf("point_accounts.balance = %d, 期待値 0", balance)
 		}
 	})
 }
@@ -239,10 +243,10 @@ func verifyAuthSchema(db *gorm.DB) error {
 	if err := db.Exec("SELECT 1 FROM users LIMIT 1").Error; err != nil {
 		return err
 	}
-	if err := db.Exec("SELECT 1 FROM contribution_point_accounts LIMIT 1").Error; err != nil {
+	if err := db.Exec("SELECT 1 FROM point_accounts LIMIT 1").Error; err != nil {
 		return err
 	}
-	return db.Exec("SELECT 1 FROM contribution_point_ledger LIMIT 1").Error
+	return db.Exec("SELECT 1 FROM point_ledger LIMIT 1").Error
 }
 
 func uniqueGitHubID() int64 {
@@ -265,6 +269,8 @@ func isMissingSchemaError(err error) bool {
 	return strings.Contains(message, `relation "users" does not exist`) ||
 		strings.Contains(message, `relation "contribution_point_accounts" does not exist`) ||
 		strings.Contains(message, `relation "contribution_point_ledger" does not exist`) ||
+		strings.Contains(message, `relation "point_accounts" does not exist`) ||
+		strings.Contains(message, `relation "point_ledger" does not exist`) ||
 		strings.Contains(message, `relation "github_repositories" does not exist`) ||
 		strings.Contains(message, `relation "guilds" does not exist`) ||
 		strings.Contains(message, `relation "guild_memberships" does not exist`) ||

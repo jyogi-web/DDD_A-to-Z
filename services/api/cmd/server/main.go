@@ -141,7 +141,11 @@ func buildControllers(logger *slog.Logger, db *gorm.DB) (*httpapi.AuthController
 		repositoryClient,
 		repositoryStore,
 	)
-	guildUseCase := guildapp.NewUseCase(guildStore)
+	guildUseCase := guildapp.NewUseCase(
+		guildStore,
+		authStore,
+		security.NewIDGenerator("guild_membership"),
+	)
 
 	// MyPage use case: compose CP reader from existing ContributionPointStore (balance)
 	// and MyPageStore (total earned/spent, repository summary).

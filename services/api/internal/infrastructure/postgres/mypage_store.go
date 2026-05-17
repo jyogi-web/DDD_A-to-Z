@@ -24,8 +24,8 @@ func (s *MyPageStore) GetTotalEarned(ctx context.Context, userID user.ID) (int64
 	var total *int64
 	err := s.db.WithContext(ctx).Raw(`
 		SELECT COALESCE(SUM(amount), 0)
-		FROM contribution_point_ledger
-		WHERE user_id = ? AND type = 'earn'
+		FROM point_ledger
+		WHERE user_id = ? AND point_type = 'CP' AND type = 'earn'
 	`, userID).Scan(&total).Error
 	if err != nil {
 		return 0, err
@@ -42,8 +42,8 @@ func (s *MyPageStore) GetTotalSpent(ctx context.Context, userID user.ID) (int64,
 	var total *int64
 	err := s.db.WithContext(ctx).Raw(`
 		SELECT COALESCE(ABS(SUM(amount)), 0)
-		FROM contribution_point_ledger
-		WHERE user_id = ? AND type = 'spend'
+		FROM point_ledger
+		WHERE user_id = ? AND point_type = 'CP' AND type = 'spend'
 	`, userID).Scan(&total).Error
 	if err != nil {
 		return 0, err
