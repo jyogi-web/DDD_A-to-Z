@@ -77,10 +77,16 @@ func buildControllers(logger *slog.Logger, db *gorm.DB) (controllerSet, error) {
 		repositoryClient,
 		repositoryStore,
 	)
-	guildUseCase := guildapp.NewUseCase(
+	cpLedgerIDGenerator := security.NewIDGenerator("cp")
+	cpUseCase := contributionpointapp.NewUseCase(contributionPointStore, cpLedgerIDGenerator)
+	cpManager := newCPManager(cpUseCase)
+	guildUseCase := guildapp.NewUseCaseWithCPTransaction(
 		guildStore,
 		authStore,
 		security.NewIDGenerator("guild_membership"),
+		security.NewIDGenerator("guild_cp_contribution"),
+		cpUseCase,
+		postgres.NewGuildCPContributionTransactioner(db, cpLedgerIDGenerator),
 	)
 	mypageUseCase := mypageapp.NewUseCase(
 		authStore,
@@ -93,8 +99,6 @@ func buildControllers(logger *slog.Logger, db *gorm.DB) (controllerSet, error) {
 		profileStore,
 	)
 
-	cpUseCase := contributionpointapp.NewUseCase(contributionPointStore, security.NewIDGenerator("cp"))
-	cpManager := newCPManager(cpUseCase)
 	analysisUseCase := analysisapp.NewUseCase(
 		authStore,
 		authStore,
