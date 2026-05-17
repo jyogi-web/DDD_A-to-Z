@@ -11,7 +11,7 @@ import { TitleUserBadge } from "./components/title/TitleUserBadge";
 import { AUDIO_ASSETS } from "./features/audio/audioAssets";
 import { beginLogin, fetchMe, logout } from "./features/auth/api";
 import type { CurrentUser } from "./features/auth/types";
-import { hasCompletedInitialProfile } from "./features/profile/initialProfile";
+import { fetchProfile } from "./features/profile/api";
 import { useTitleAudio } from "./hooks/useTitleAudio";
 
 const containerVariants: Variants = {
@@ -59,11 +59,19 @@ function App() {
   // ログイン状態を確認
   useEffect(() => {
     fetchMe()
-      .then((user) => {
+      .then(async (user) => {
         setCurrentUser(user);
-        setIsInitialProfileCompleted(user ? hasCompletedInitialProfile(user.id) : false);
+        if (!user) {
+          setIsInitialProfileCompleted(false);
+          return;
+        }
+
+        const profile = await fetchProfile();
+        setIsInitialProfileCompleted(profile !== null);
       })
-      .catch(() => {});
+      .catch(() => {
+        setIsInitialProfileCompleted(false);
+      });
   }, []);
 
   const handleLogin = beginLogin;
