@@ -6,6 +6,8 @@ import { fetchMyGuild } from "../../features/guild/api";
 import { BACK_NAVIGATION_SE_SRC, useBackNavigationSe } from "../../hooks/useBackNavigationSe";
 import { steppedEase } from "../../lib/animationUtils";
 import { PATHS } from "../../constants/paths";
+import { GUILD_CHAT_MESSAGES } from "./chatData";
+import { GuildChatExpandedModal } from "./GuildChatExpandedModal";
 import { GuildChatOverlay } from "./GuildChatOverlay";
 import { DashboardMonitor } from "./DashboardMonitor";
 import { createLog, GUILD_TABS, INITIAL_LOGS } from "./data";
@@ -17,10 +19,12 @@ interface GuildDashboardProps {
   onNavigate: (path: string) => void;
 }
 
+type ChatView = "closed" | "compact" | "expanded";
+
 export function GuildDashboard({ onNavigate }: GuildDashboardProps) {
   const { isSeEnabled } = useAudioSettings();
   const [activeTab, setActiveTab] = useState<GuildTab>("activity");
-  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatView, setChatView] = useState<ChatView>("closed");
   const [logs, setLogs] = useState(INITIAL_LOGS);
   const { backNavigationSeRef, navigateBackWithSe } = useBackNavigationSe(onNavigate);
   const tabSwitchSeRef = useRef<HTMLAudioElement | null>(null);
@@ -136,9 +140,11 @@ export function GuildDashboard({ onNavigate }: GuildDashboardProps) {
         transition={{ delay: 0.14, duration: 0.28, ease: steppedEase(5) }}
         whileHover={{ y: -2, scale: 1.02 }}
         whileTap={{ y: 1, scale: 0.98 }}
-        onClick={() => setIsChatOpen((current) => !current)}
-        aria-expanded={isChatOpen}
-        aria-controls="guild-chat-overlay-title"
+        onClick={() => setChatView((current) => (current === "closed" ? "compact" : "closed"))}
+        aria-expanded={chatView !== "closed"}
+        aria-controls={
+          chatView === "expanded" ? "guild-chat-expanded-title" : "guild-chat-overlay-title"
+        }
         style={{
           position: "fixed",
           top: "calc(env(safe-area-inset-top, 0px) + clamp(88px, 8vw, 112px))",
@@ -160,9 +166,20 @@ export function GuildDashboard({ onNavigate }: GuildDashboardProps) {
           textShadow: "2px 2px 0 rgba(0,0,0,0.72)",
         }}
       >
-        {isChatOpen ? "[ CLOSE CHAT ]" : "[ COMM LINK ]"}
+        {chatView === "closed" ? "[ COMM LINK ]" : "[ CLOSE CHAT ]"}
       </motion.button>
-      <GuildChatOverlay isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+      <GuildChatOverlay
+        isOpen={chatView === "compact"}
+        messages={GUILD_CHAT_MESSAGES.slice(-4)}
+        onExpand={() => setChatView("expanded")}
+        onClose={() => setChatView("closed")}
+      />
+      <GuildChatExpandedModal
+        isOpen={chatView === "expanded"}
+        messages={GUILD_CHAT_MESSAGES}
+        onMinimize={() => setChatView("compact")}
+        onClose={() => setChatView("closed")}
+      />
 
       <button
         type="button"
