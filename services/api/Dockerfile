@@ -13,11 +13,16 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o server ./services/api/cmd/server
 
 FROM alpine:3.21
 
-RUN apk --no-cache add ca-certificates tzdata
+RUN addgroup -S app && adduser -S -G app app \
+  && apk --no-cache add ca-certificates tzdata
 
 WORKDIR /app
 
 COPY --from=builder /app/server .
+
+RUN chown -R app:app /app
+
+USER app
 
 EXPOSE 8080
 

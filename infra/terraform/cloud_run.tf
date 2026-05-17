@@ -44,6 +44,8 @@ resource "google_cloud_run_v2_service" "api" {
   deletion_protection = false
 
   template {
+    service_account = google_service_account.cloud_run.email
+
     scaling {
       min_instance_count = 0
       max_instance_count = 10
@@ -142,6 +144,8 @@ resource "google_cloud_run_v2_service" "api" {
   # tofu plan のたびに差分として検出される。実態は変わらないので無視する。
   lifecycle {
     ignore_changes = [
+      # deploy.yml が実イメージを差し替えるため、Terraform は placeholder との差分を無視する。
+      template[0].containers[0].image,
       # GCP がトップレベルに scaling ブロックを自動付与するため
       # plan のたびに差分として検出される。実態は変わらないので無視する。
       scaling,

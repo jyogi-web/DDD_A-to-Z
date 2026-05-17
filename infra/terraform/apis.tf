@@ -13,6 +13,7 @@
 
 locals {
   apis = [
+    "serviceusage.googleapis.com",         # API 有効化操作自体で利用
     "iam.googleapis.com",                  # IAM (Service Account, ロール管理)
     "iamcredentials.googleapis.com",       # Workload Identity Federation で必要
     "cloudresourcemanager.googleapis.com", # プロジェクト情報の取得に必要

@@ -83,14 +83,20 @@ resource "google_iam_workload_identity_pool_provider" "github" {
 
 # ── 3. Service Account ────────────────────────────────────
 # GCP 側の「実行ユーザー」。
-# GitHub Actions はこの SA になりすまして GCP リソースを操作する。
-# 人間のユーザーアカウントではなく、CI/CD 専用のアカウントを用意することで
-# 権限を最小限に絞れる。
+# GitHub Actions 用と Cloud Run 実行用を分けることで、権限を最小限に絞る。
 
 resource "google_service_account" "deploy" {
   project      = var.project_id
   account_id   = "lang-war-deploy"
   display_name = "Lang War GitHub Actions Deploy"
+
+  depends_on = [google_project_service.apis]
+}
+
+resource "google_service_account" "cloud_run" {
+  project      = var.project_id
+  account_id   = "lang-war-cloud-run"
+  display_name = "Lang War Cloud Run Runtime"
 
   depends_on = [google_project_service.apis]
 }
@@ -124,33 +130,33 @@ resource "google_project_iam_member" "deploy_ar_writer" {
   member  = "serviceAccount:${google_service_account.deploy.email}"
 }
 
-# Cloud Run が Secret Manager のシークレットを参照するための権限
-resource "google_project_iam_member" "deploy_secret_accessor" {
-  project = var.project_id
-  role    = "roles/secretmanager.secretAccessor"
-  member  = "serviceAccount:${google_service_account.deploy.email}"
-}
-
 # ── 4-c. act-as 権限 ──────────────────────────────────────
 # Cloud Run のデプロイ時、gcloud は「Cloud Run サービスがどの SA として動くか」も指定する。
-# デフォルトでは Compute Engine のデフォルト SA が使われる。
-# deploy SA がその SA に "act as"（代理実行）できるように許可が必要。
+# deploy SA が Cloud Run 実行 SA に "act as"（代理実行）できるように許可が必要。
 # これがないと gcloud run deploy が「権限がない」と失敗する。
 
-data "google_project" "current" {
-  project_id = var.project_id
-}
-
-resource "google_service_account_iam_member" "deploy_act_as_compute" {
-  service_account_id = "projects/${var.project_id}/serviceAccounts/${data.google_project.current.number}-compute@developer.gserviceaccount.com"
+resource "google_service_account_iam_member" "deploy_act_as_cloud_run" {
+  service_account_id = google_service_account.cloud_run.name
   role               = "roles/iam.serviceAccountUser"
   member             = "serviceAccount:${google_service_account.deploy.email}"
 }
 
-# Cloud Run の実行 SA（Compute SA）が Secret Manager を読めるようにする
-# deploy SA とは別に、Cloud Run がシークレットを実行時に参照するために必要
-resource "google_project_iam_member" "compute_secret_accessor" {
-  project = var.project_id
-  role    = "roles/secretmanager.secretAccessor"
-  member  = "serviceAccount:${data.google_project.current.number}-compute@developer.gserviceaccount.com"
+# Cloud Run の実行 SA が、実際に参照する Secret Manager シークレットだけを読めるようにする。
+resource "google_secret_manager_secret_iam_member" "cloud_run_secret_accessor" {
+  for_each = google_secret_manager_secret.secrets
+
+  project   = var.project_id
+  secret_id = each.value.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.cloud_run.email}"
+}
+
+# CI は gcloud run deploy --set-secrets で同じシークレットを参照するため、プロジェクト全体ではなく対象シークレットだけに絞る。
+resource "google_secret_manager_secret_iam_member" "deploy_secret_accessor" {
+  for_each = google_secret_manager_secret.secrets
+
+  project   = var.project_id
+  secret_id = each.value.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.deploy.email}"
 }

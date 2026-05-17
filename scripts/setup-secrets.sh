@@ -65,7 +65,7 @@ missing=""
 
 if [ -n "${missing}" ]; then
   echo "Error: ${ENV_FILE} に以下の変数が設定されていません:"
-  printf "${missing}"
+  printf '%b' "${missing}"
   exit 1
 fi
 
