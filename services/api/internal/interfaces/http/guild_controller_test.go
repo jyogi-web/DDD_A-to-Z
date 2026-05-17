@@ -18,6 +18,7 @@ import (
 type guildTestRepository struct {
 	guilds           []guilddomain.Guild
 	activeMembership *guilddomain.MembershipWithGuild
+	updated          *guilddomain.Membership
 }
 
 func (r guildTestRepository) ListGuilds(ctx context.Context) ([]guilddomain.Guild, error) {
@@ -50,6 +51,15 @@ func (r guildTestRepository) CreateMembership(ctx context.Context, membership gu
 	return nil
 }
 
+func (r *guildTestRepository) UpdateMembership(ctx context.Context, membership guilddomain.Membership) error {
+	if r.activeMembership == nil {
+		return guildapp.ErrActiveMembershipNotFound
+	}
+
+	r.updated = &membership
+	return nil
+}
+
 type guildTestCurrentUserRepository struct {
 	appUser user.User
 	ok      bool
@@ -67,7 +77,7 @@ func (g guildTestIDGenerator) NewID() (string, error) {
 
 func TestGuildControllerListGuilds(t *testing.T) {
 	now := time.Date(2026, 5, 15, 0, 0, 0, 0, time.UTC)
-	controller := NewGuildController(guildapp.NewUseCase(guildTestRepository{
+	controller := NewGuildController(guildapp.NewUseCase(&guildTestRepository{
 		guilds: []guilddomain.Guild{{
 			ID:          "guild_typescript",
 			Slug:        "typescript",
@@ -119,7 +129,7 @@ func TestGuildControllerListGuilds(t *testing.T) {
 
 func TestGuildControllerJoinGuild(t *testing.T) {
 	now := time.Date(2026, 5, 16, 12, 0, 0, 0, time.UTC)
-	controller := NewGuildController(guildapp.NewUseCase(guildTestRepository{
+	controller := NewGuildController(guildapp.NewUseCase(&guildTestRepository{
 		guilds: []guilddomain.Guild{{
 			ID:          "guild_go",
 			Slug:        "go",
@@ -192,7 +202,7 @@ func TestGuildControllerGetMyGuild(t *testing.T) {
 			UpdatedAt:   now,
 		},
 	}
-	controller := NewGuildController(guildapp.NewUseCase(guildTestRepository{
+	controller := NewGuildController(guildapp.NewUseCase(&guildTestRepository{
 		activeMembership: &activeMembership,
 	}, guildTestCurrentUserRepository{
 		appUser: user.User{ID: "user_1"},
@@ -223,8 +233,92 @@ func TestGuildControllerGetMyGuild(t *testing.T) {
 	}
 }
 
+func TestGuildControllerLeaveMyGuild(t *testing.T) {
+	now := time.Date(2026, 5, 16, 12, 0, 0, 0, time.UTC)
+	activeMembership := guilddomain.MembershipWithGuild{
+		Membership: guilddomain.Membership{
+			ID:        "membership_1",
+			UserID:    "user_1",
+			GuildID:   "guild_go",
+			JoinedAt:  now.Add(-time.Hour),
+			CreatedAt: now.Add(-time.Hour),
+			UpdatedAt: now.Add(-time.Hour),
+		},
+		Guild: guilddomain.Guild{
+			ID:          "guild_go",
+			Slug:        "go",
+			Name:        "Go",
+			Description: "シンプルさと並列処理で前に進むギルド。",
+			Icon:        "GO",
+			Color:       "#00acd7",
+			SortOrder:   1,
+			MemberCount: 1,
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		},
+	}
+	repository := &guildTestRepository{
+		activeMembership: &activeMembership,
+	}
+	controller := NewGuildController(guildapp.NewUseCase(repository, guildTestCurrentUserRepository{
+		appUser: user.User{ID: "user_1"},
+		ok:      true,
+	}, guildTestIDGenerator{}), slog.New(slog.NewTextHandler(io.Discard, nil)))
+	router := stdhttp.NewServeMux()
+	controller.RegisterRoutes(router)
+
+	response := httptest.NewRecorder()
+	request := httptest.NewRequest(stdhttp.MethodDelete, "/me/guild", nil)
+	request.AddCookie(&stdhttp.Cookie{Name: sessionCookieName, Value: "session-token"})
+	router.ServeHTTP(response, request)
+
+	if response.Code != stdhttp.StatusNoContent {
+		t.Fatalf("ステータスコード = %d, 期待値 %d", response.Code, stdhttp.StatusNoContent)
+	}
+	if repository.updated == nil {
+		t.Fatal("UpdateMembership() が呼ばれる必要があります")
+	}
+	if repository.updated.LeftAt == nil {
+		t.Fatal("left_at が設定されている必要があります")
+	}
+}
+
+func TestGuildControllerLeaveMyGuildRejectsMembershipNotFound(t *testing.T) {
+	controller := NewGuildController(guildapp.NewUseCase(&guildTestRepository{}, guildTestCurrentUserRepository{
+		appUser: user.User{ID: "user_1"},
+		ok:      true,
+	}, guildTestIDGenerator{}), slog.New(slog.NewTextHandler(io.Discard, nil)))
+	router := stdhttp.NewServeMux()
+	controller.RegisterRoutes(router)
+
+	response := httptest.NewRecorder()
+	request := httptest.NewRequest(stdhttp.MethodDelete, "/me/guild", nil)
+	request.AddCookie(&stdhttp.Cookie{Name: sessionCookieName, Value: "session-token"})
+	router.ServeHTTP(response, request)
+
+	if response.Code != stdhttp.StatusNotFound {
+		t.Fatalf("ステータスコード = %d, 期待値 %d", response.Code, stdhttp.StatusNotFound)
+	}
+
+	var body struct {
+		Error struct {
+			Code    string `json:"code"`
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+		t.Fatalf("レスポンスボディのデコードに失敗しました: %v", err)
+	}
+	if body.Error.Code != "guild_membership_not_found" {
+		t.Fatalf("error.code = %q, 期待値 guild_membership_not_found", body.Error.Code)
+	}
+	if body.Error.Message != "active guild membership not found" {
+		t.Fatalf("error.message = %q, 期待値 active guild membership not found", body.Error.Message)
+	}
+}
+
 func TestGuildControllerJoinGuildRejectsUnauthenticated(t *testing.T) {
-	controller := NewGuildController(guildapp.NewUseCase(guildTestRepository{}, guildTestCurrentUserRepository{}, guildTestIDGenerator{}), slog.New(slog.NewTextHandler(io.Discard, nil)))
+	controller := NewGuildController(guildapp.NewUseCase(&guildTestRepository{}, guildTestCurrentUserRepository{}, guildTestIDGenerator{}), slog.New(slog.NewTextHandler(io.Discard, nil)))
 	router := stdhttp.NewServeMux()
 	controller.RegisterRoutes(router)
 

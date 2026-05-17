@@ -2,10 +2,13 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
 
+	guildapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/guild"
+	guilddomain "github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/guild"
 	"github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/user"
 	"gorm.io/gorm"
 )
@@ -147,6 +150,119 @@ func TestGuildsRejectInvalidColor(t *testing.T) {
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 		`, "guild_invalid_color_"+validGuildID, "invalid_color_"+validGuildID, "Invalid Color", "不正な色を持つテストギルド。", "I", "3178c6", 2, now, now).Error
 	})
+}
+
+func TestGuildStoreUpdateMembershipLeavesMembership(t *testing.T) {
+	ctx := context.Background()
+	tx := beginPostgresTestTransaction(t, ctx)
+	store, err := NewGuildStore(tx)
+	if err != nil {
+		t.Fatalf("NewGuildStore() がエラーを返しました: %v", err)
+	}
+
+	now := time.Date(2026, 5, 15, 3, 0, 0, 0, time.UTC)
+	guildID := fmt.Sprintf("guild_leave_test_%d", uniqueGitHubID())
+	insertPostgresTestGuild(t, ctx, tx, testGuild{
+		ID:          guildID,
+		Slug:        guildID,
+		Name:        "Leave Test",
+		Description: "脱退更新のテストギルド。",
+		Icon:        "L",
+		Color:       "#123456",
+		SortOrder:   1,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	})
+
+	appUser := createPostgresTestUser(t, ctx, tx)
+	membershipID := "membership_leave_" + string(appUser.ID)
+	insertPostgresTestMembership(t, ctx, tx, membershipID, appUser.ID, guildID, now, nil)
+
+	leftAt := now.Add(2 * time.Hour)
+	err = store.UpdateMembership(ctx, guilddomain.Membership{
+		ID:        guilddomain.MembershipID(membershipID),
+		UserID:    appUser.ID,
+		GuildID:   guilddomain.ID(guildID),
+		JoinedAt:  now,
+		LeftAt:    &leftAt,
+		CreatedAt: now,
+		UpdatedAt: leftAt,
+	})
+	if err != nil {
+		if isMissingSchemaError(err) {
+			t.Skipf("PostgreSQL 結合テストをスキップします: guild membership schema が migrate されていません: %v", err)
+		}
+		t.Fatalf("UpdateMembership() がエラーを返しました: %v", err)
+	}
+
+	if _, ok, err := store.FindActiveMembershipByUserID(ctx, appUser.ID); err != nil {
+		t.Fatalf("FindActiveMembershipByUserID() がエラーを返しました: %v", err)
+	} else if ok {
+		t.Fatal("脱退後は active membership が存在しない必要があります")
+	}
+
+	var row struct {
+		LeftAt    *time.Time `gorm:"column:left_at"`
+		UpdatedAt time.Time  `gorm:"column:updated_at"`
+	}
+	if err := tx.WithContext(ctx).Raw(`
+		SELECT left_at, updated_at
+		FROM guild_memberships
+		WHERE id = ?
+	`, membershipID).Scan(&row).Error; err != nil {
+		t.Fatalf("guild_memberships の確認に失敗しました: %v", err)
+	}
+	if row.LeftAt == nil {
+		t.Fatal("left_at が保存されている必要があります")
+	}
+	if !row.LeftAt.Equal(leftAt) {
+		t.Fatalf("left_at = %v, 期待値 %v", row.LeftAt, leftAt)
+	}
+	if !row.UpdatedAt.Equal(leftAt) {
+		t.Fatalf("updated_at = %v, 期待値 %v", row.UpdatedAt, leftAt)
+	}
+}
+
+func TestGuildStoreUpdateMembershipRejectsAlreadyLeftMembership(t *testing.T) {
+	ctx := context.Background()
+	tx := beginPostgresTestTransaction(t, ctx)
+	store, err := NewGuildStore(tx)
+	if err != nil {
+		t.Fatalf("NewGuildStore() がエラーを返しました: %v", err)
+	}
+
+	now := time.Date(2026, 5, 15, 4, 0, 0, 0, time.UTC)
+	guildID := fmt.Sprintf("guild_already_left_test_%d", uniqueGitHubID())
+	insertPostgresTestGuild(t, ctx, tx, testGuild{
+		ID:          guildID,
+		Slug:        guildID,
+		Name:        "Already Left Test",
+		Description: "脱退済み membership の更新拒否テスト。",
+		Icon:        "A",
+		Color:       "#654321",
+		SortOrder:   1,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	})
+
+	appUser := createPostgresTestUser(t, ctx, tx)
+	membershipID := "membership_already_left_" + string(appUser.ID)
+	firstLeftAt := now.Add(time.Hour)
+	insertPostgresTestMembership(t, ctx, tx, membershipID, appUser.ID, guildID, now, &firstLeftAt)
+
+	secondLeftAt := now.Add(2 * time.Hour)
+	err = store.UpdateMembership(ctx, guilddomain.Membership{
+		ID:        guilddomain.MembershipID(membershipID),
+		UserID:    appUser.ID,
+		GuildID:   guilddomain.ID(guildID),
+		JoinedAt:  now,
+		LeftAt:    &secondLeftAt,
+		CreatedAt: now,
+		UpdatedAt: secondLeftAt,
+	})
+	if !errors.Is(err, guildapp.ErrActiveMembershipNotFound) {
+		t.Fatalf("UpdateMembership() error = %v, 期待値 ErrActiveMembershipNotFound", err)
+	}
 }
 
 func TestNewGuildStoreRejectsNilDB(t *testing.T) {

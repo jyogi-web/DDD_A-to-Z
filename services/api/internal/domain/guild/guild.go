@@ -106,6 +106,21 @@ func (m Membership) Active() bool {
 	return m.LeftAt == nil
 }
 
+func (m Membership) Leave(now time.Time) (Membership, error) {
+	if now.IsZero() {
+		return Membership{}, errors.New("leave time is required")
+	}
+	if !m.Active() {
+		return Membership{}, errors.New("guild membership is already left")
+	}
+
+	leftAt := now
+	m.LeftAt = &leftAt
+	m.UpdatedAt = now
+
+	return NewMembership(m)
+}
+
 func isHexColor(value string) bool {
 	if len(value) != 7 || value[0] != '#' {
 		return false

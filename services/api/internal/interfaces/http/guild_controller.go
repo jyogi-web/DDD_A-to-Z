@@ -26,6 +26,7 @@ func (c *GuildController) RegisterRoutes(mux *stdhttp.ServeMux) {
 	mux.HandleFunc("GET /guilds", c.listGuilds)
 	mux.HandleFunc("POST /guilds/{guildID}/join", c.joinGuild)
 	mux.HandleFunc("GET /me/guild", c.getMyGuild)
+	mux.HandleFunc("DELETE /me/guild", c.leaveMyGuild)
 }
 
 func (c *GuildController) listGuilds(w stdhttp.ResponseWriter, r *stdhttp.Request) {
@@ -85,6 +86,21 @@ func (c *GuildController) getMyGuild(w stdhttp.ResponseWriter, r *stdhttp.Reques
 	}
 }
 
+func (c *GuildController) leaveMyGuild(w stdhttp.ResponseWriter, r *stdhttp.Request) {
+	cookie, err := r.Cookie(sessionCookieName)
+	if err != nil {
+		c.writeError(w, guildapp.ErrUnauthenticated)
+		return
+	}
+
+	if err := c.usecase.LeaveMyGuild(r.Context(), cookie.Value); err != nil {
+		c.writeError(w, err)
+		return
+	}
+
+	w.WriteHeader(stdhttp.StatusNoContent)
+}
+
 func (c *GuildController) writeError(w stdhttp.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, guildapp.ErrUnauthenticated):
@@ -93,6 +109,8 @@ func (c *GuildController) writeError(w stdhttp.ResponseWriter, err error) {
 		writeAPIError(w, stdhttp.StatusNotFound, "guild_not_found", "guild not found", 0, nil)
 	case errors.Is(err, guildapp.ErrAlreadyJoined):
 		writeAPIError(w, stdhttp.StatusConflict, "already_joined_guild", "user already joined a guild", 0, nil)
+	case errors.Is(err, guildapp.ErrActiveMembershipNotFound):
+		writeAPIError(w, stdhttp.StatusNotFound, "guild_membership_not_found", "active guild membership not found", 0, nil)
 	default:
 		c.logger.Error("guild request failed", "error", err)
 		writeAPIError(w, stdhttp.StatusInternalServerError, "internal_error", "Internal Server Error", 0, nil)
