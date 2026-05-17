@@ -69,7 +69,7 @@ jobs:
             --region=${{ env.GCP_REGION }} \
             --platform=managed \
             --allow-unauthenticated \
-            --set-secrets="DATABASE_URL=lang-war-database-url:latest,GITHUB_CLIENT_ID=lang-war-github-client-id:latest,GITHUB_CLIENT_SECRET=lang-war-github-client-secret:latest,SESSION_SECRET=lang-war-session-secret:latest" \
+            --set-secrets="DATABASE_URL=lang-war-database-url:latest,GITHUB_CLIENT_ID=lang-war-github-client-id:latest,GITHUB_CLIENT_SECRET=lang-war-github-client-secret:latest,GITHUB_REDIRECT_URL=lang-war-github-redirect-url:latest,AUTH_COOKIE_SECRET=lang-war-auth-cookie-secret:latest,GITHUB_TOKEN_ENCRYPTION_SECRET=lang-war-github-token-encryption-secret:latest" \
             --port=8080 \
             --min-instances=0 \
             --max-instances=10 \

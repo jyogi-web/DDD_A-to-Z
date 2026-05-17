@@ -24,10 +24,12 @@
 
 locals {
   secret_names = [
-    "lang-war-database-url",          # Neon DB 接続文字列
-    "lang-war-github-client-id",      # GitHub OAuth App の Client ID
-    "lang-war-github-client-secret",  # GitHub OAuth App の Client Secret
-    "lang-war-session-secret",        # セッション署名用のランダム文字列
+    "lang-war-database-url",                   # Neon DB 接続文字列
+    "lang-war-github-client-id",               # GitHub OAuth App の Client ID
+    "lang-war-github-client-secret",           # GitHub OAuth App の Client Secret
+    "lang-war-github-redirect-url",            # GitHub OAuth callback URL
+    "lang-war-auth-cookie-secret",             # OAuth state cookie 署名用 secret
+    "lang-war-github-token-encryption-secret", # GitHub token 暗号化用 secret
   ]
 }
 

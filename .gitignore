@@ -5,6 +5,7 @@
 .env
 .env.*
 !.env.example
+!.env.prod.example
 
 node_modules/
 dist/
@@ -20,4 +21,3 @@ bin/
 !infra/terraform/terraform.tfvars
 *.tfvars.json
 .terraform/
-

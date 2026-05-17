@@ -19,7 +19,7 @@
 resource "google_artifact_registry_repository" "api" {
   project       = var.project_id
   location      = var.region
-  repository_id = "lang-war"   # リポジトリ名。URL の一部になる
+  repository_id = "lang-war" # リポジトリ名。URL の一部になる
   format        = "DOCKER"
   description   = "Lang War container images"
 

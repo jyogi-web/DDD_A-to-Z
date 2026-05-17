@@ -5,7 +5,7 @@ WORKDIR /app
 # go.work + services/api の依存を先にキャッシュ
 COPY go.work go.work.sum ./
 COPY services/api/go.mod services/api/go.sum ./services/api/
-RUN go work sync && go mod download -modfile=services/api/go.mod
+RUN go work sync && go mod download
 
 COPY services/api/ ./services/api/
 

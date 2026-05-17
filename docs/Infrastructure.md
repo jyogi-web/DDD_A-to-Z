@@ -50,23 +50,24 @@ scripts/
 ### 前提
 
 - `gcloud auth login` でオーナー権限のアカウントで認証済み
-- `~/.env` に必要な変数が設定済み（`.env.example` を参照）
+- プロジェクトルートの `.env.prod` に本番 Secret 登録用の変数が設定済み（`.env.prod.example` を参照）
 
 ```bash
-cp .env.example ~/.env
+cp .env.prod.example .env.prod
 # エディタで実際の値を埋める
 ```
 
-`~/.env` に設定する変数：
+`.env.prod` に設定する変数：
 
 | 変数 | 説明 |
 |---|---|
 | `GCP_PROJECT_ID` | GCP プロジェクト ID |
-| `GITHUB_REPO` | `jyogi-web/DDD_A-to-Z` |
 | `NEON_DATABASE_URL` | Neon DB の接続文字列 |
 | `GITHUB_CLIENT_ID` | GitHub OAuth App の Client ID |
 | `GITHUB_CLIENT_SECRET` | GitHub OAuth App の Client Secret |
-| `SESSION_SECRET` | セッション署名用の文字列（省略で自動生成） |
+| `GITHUB_REDIRECT_URL` | GitHub OAuth callback URL |
+| `AUTH_COOKIE_SECRET` | OAuth state cookie 署名用 secret |
+| `GITHUB_TOKEN_ENCRYPTION_SECRET` | GitHub token 暗号化用 secret |
 
 ### 手順
 
@@ -118,7 +119,7 @@ artifact_registry_repo     = "asia-northeast1-docker.pkg.dev/PROJECT_ID/lang-war
 ./scripts/setup-secrets.sh
 ```
 
-`~/.env` の値を読んで Secret Manager に登録する。以降、Cloud Run 起動時に自動で注入される。
+`.env.prod` の値を読んで Secret Manager に登録する。以降、Cloud Run 起動時に自動で注入される。
 
 ---
 

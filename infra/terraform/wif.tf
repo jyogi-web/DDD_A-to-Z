@@ -56,7 +56,8 @@ resource "google_iam_workload_identity_pool" "github" {
 #   これにより attribute_condition でリポジトリ名を使った絞り込みができる。
 #
 # attribute_condition: このリポジトリからのトークンだけ受け付ける条件。
-#   他のリポジトリからこの GCP プロジェクトを操作されないようにするための安全弁。
+#   main ブランチの deploy workflow だけに絞り、
+#   他のリポジトリや別 workflow からこの GCP プロジェクトを操作されないようにするための安全弁。
 
 resource "google_iam_workload_identity_pool_provider" "github" {
   project                            = var.project_id
@@ -69,14 +70,15 @@ resource "google_iam_workload_identity_pool_provider" "github" {
   }
 
   attribute_mapping = {
-    "google.subject"       = "assertion.sub"        # トークンの一意識別子
-    "attribute.repository" = "assertion.repository" # リポジトリ名 (owner/repo)
-    "attribute.actor"      = "assertion.actor"      # ワークフローを実行したユーザー
-    "attribute.ref"        = "assertion.ref"        # ブランチ名 (refs/heads/main 等)
+    "google.subject"       = "assertion.sub"          # トークンの一意識別子
+    "attribute.repository" = "assertion.repository"   # リポジトリ名 (owner/repo)
+    "attribute.actor"      = "assertion.actor"        # ワークフローを実行したユーザー
+    "attribute.ref"        = "assertion.ref"          # ブランチ名 (refs/heads/main 等)
+    "attribute.workflow"   = "assertion.workflow_ref" # workflow ファイルと ref
   }
 
-  # このリポジトリからのトークンのみ受け付ける
-  attribute_condition = "assertion.repository == '${var.github_repo}'"
+  # main ブランチの deploy workflow からのトークンのみ受け付ける
+  attribute_condition = "assertion.repository == '${var.github_repo}' && assertion.ref == 'refs/heads/main' && assertion.workflow_ref == '${var.github_repo}/.github/workflows/deploy.yml@refs/heads/main'"
 }
 
 # ── 3. Service Account ────────────────────────────────────

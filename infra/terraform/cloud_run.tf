@@ -99,10 +99,30 @@ resource "google_cloud_run_v2_service" "api" {
       }
 
       env {
-        name = "SESSION_SECRET"
+        name = "GITHUB_REDIRECT_URL"
         value_source {
           secret_key_ref {
-            secret  = "lang-war-session-secret"
+            secret  = "lang-war-github-redirect-url"
+            version = "latest"
+          }
+        }
+      }
+
+      env {
+        name = "AUTH_COOKIE_SECRET"
+        value_source {
+          secret_key_ref {
+            secret  = "lang-war-auth-cookie-secret"
+            version = "latest"
+          }
+        }
+      }
+
+      env {
+        name = "GITHUB_TOKEN_ENCRYPTION_SECRET"
+        value_source {
+          secret_key_ref {
+            secret  = "lang-war-github-token-encryption-secret"
             version = "latest"
           }
         }

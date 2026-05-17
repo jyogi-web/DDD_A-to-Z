@@ -13,12 +13,12 @@
 
 locals {
   apis = [
-    "iam.googleapis.com",                # IAM (Service Account, ロール管理)
-    "iamcredentials.googleapis.com",     # Workload Identity Federation で必要
+    "iam.googleapis.com",                  # IAM (Service Account, ロール管理)
+    "iamcredentials.googleapis.com",       # Workload Identity Federation で必要
     "cloudresourcemanager.googleapis.com", # プロジェクト情報の取得に必要
-    "run.googleapis.com",                # Cloud Run
-    "artifactregistry.googleapis.com",   # Docker イメージの保存場所
-    "secretmanager.googleapis.com",      # Secret Manager (DB パスワード等の管理)
+    "run.googleapis.com",                  # Cloud Run
+    "artifactregistry.googleapis.com",     # Docker イメージの保存場所
+    "secretmanager.googleapis.com",        # Secret Manager (DB パスワード等の管理)
   ]
 }
 
