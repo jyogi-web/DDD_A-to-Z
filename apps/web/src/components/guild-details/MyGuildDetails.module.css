@@ -49,6 +49,13 @@
   text-align: center;
 }
 
+.backButton:disabled,
+.copyButton:disabled,
+.leaveButton:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
 .routeLabel {
   margin: 0;
   color: #74f7a1;
@@ -188,6 +195,14 @@
   border-bottom-color: rgba(88, 28, 32, 0.96);
   border-right-color: rgba(88, 28, 32, 0.96);
   color: #ffb8b8;
+}
+
+.statusMessage {
+  margin: 0;
+  color: #ffd966;
+  font-family: "DotGothic16", monospace;
+  font-size: clamp(0.78rem, 1.4vw, 0.96rem);
+  line-height: 1.6;
 }
 
 .memberPanel {

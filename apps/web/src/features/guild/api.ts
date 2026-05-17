@@ -39,3 +39,7 @@ export async function fetchMyGuild(): Promise<GuildMembershipResponse | null> {
 export async function joinGuild(guildID: string): Promise<GuildMembershipResponse> {
   return apiFetch<GuildMembershipResponse>(`/guilds/${guildID}/join`, { method: "POST" });
 }
+
+export async function leaveGuild(): Promise<void> {
+  await apiFetch<void>("/me/guild", { method: "DELETE" });
+}
