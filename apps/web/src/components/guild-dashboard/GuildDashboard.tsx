@@ -1,9 +1,14 @@
+import { motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AUDIO_ASSETS } from "../../features/audio/audioAssets";
 import { useAudioSettings } from "../../features/audio/useAudioSettings";
 import { fetchMyGuild } from "../../features/guild/api";
 import { BACK_NAVIGATION_SE_SRC, useBackNavigationSe } from "../../hooks/useBackNavigationSe";
+import { steppedEase } from "../../lib/animationUtils";
 import { PATHS } from "../../constants/paths";
+import { GUILD_CHAT_MESSAGES } from "./chatData";
+import { GuildChatExpandedModal } from "./GuildChatExpandedModal";
+import { GuildChatOverlay } from "./GuildChatOverlay";
 import { DashboardMonitor } from "./DashboardMonitor";
 import { createLog, GUILD_TABS, INITIAL_LOGS } from "./data";
 import { GuildBadge } from "./GuildBadge";
@@ -14,9 +19,12 @@ interface GuildDashboardProps {
   onNavigate: (path: string) => void;
 }
 
+type ChatView = "closed" | "compact" | "expanded";
+
 export function GuildDashboard({ onNavigate }: GuildDashboardProps) {
   const { isSeEnabled } = useAudioSettings();
   const [activeTab, setActiveTab] = useState<GuildTab>("activity");
+  const [chatView, setChatView] = useState<ChatView>("closed");
   const [logs, setLogs] = useState(INITIAL_LOGS);
   const { backNavigationSeRef, navigateBackWithSe } = useBackNavigationSe(onNavigate);
   const tabSwitchSeRef = useRef<HTMLAudioElement | null>(null);
@@ -125,6 +133,53 @@ export function GuildDashboard({ onNavigate }: GuildDashboardProps) {
 
       <GuildBadge />
       <GuildNavigation onNavigate={onNavigate} />
+      <motion.button
+        type="button"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.14, duration: 0.28, ease: steppedEase(5) }}
+        whileHover={{ y: -2, scale: 1.02 }}
+        whileTap={{ y: 1, scale: 0.98 }}
+        onClick={() => setChatView((current) => (current === "closed" ? "compact" : "closed"))}
+        aria-expanded={chatView !== "closed"}
+        aria-controls={
+          chatView === "expanded" ? "guild-chat-expanded-title" : "guild-chat-overlay-title"
+        }
+        style={{
+          position: "fixed",
+          top: "calc(env(safe-area-inset-top, 0px) + clamp(88px, 8vw, 112px))",
+          right: "clamp(16px, 2.4vw, 32px)",
+          zIndex: 4,
+          minHeight: "44px",
+          border: "2px solid rgba(0, 245, 255, 0.82)",
+          borderBottomColor: "rgba(2, 54, 72, 0.96)",
+          borderRightColor: "rgba(2, 54, 72, 0.96)",
+          background: "rgba(3, 10, 24, 0.82)",
+          boxShadow:
+            "0 0 0 2px rgba(0,0,0,0.62), 0 0 16px rgba(0,245,255,0.24), inset 0 0 14px rgba(0,245,255,0.1)",
+          color: "#d9fbff",
+          cursor: "pointer",
+          fontFamily: "inherit",
+          fontSize: "clamp(0.54rem, 1vw, 0.72rem)",
+          lineHeight: 1.45,
+          padding: "10px 12px",
+          textShadow: "2px 2px 0 rgba(0,0,0,0.72)",
+        }}
+      >
+        {chatView === "closed" ? "[ COMM LINK ]" : "[ CLOSE CHAT ]"}
+      </motion.button>
+      <GuildChatOverlay
+        isOpen={chatView === "compact"}
+        messages={GUILD_CHAT_MESSAGES.slice(-4)}
+        onExpand={() => setChatView("expanded")}
+        onClose={() => setChatView("closed")}
+      />
+      <GuildChatExpandedModal
+        isOpen={chatView === "expanded"}
+        messages={GUILD_CHAT_MESSAGES}
+        onMinimize={() => setChatView("compact")}
+        onClose={() => setChatView("closed")}
+      />
 
       <button
         type="button"
