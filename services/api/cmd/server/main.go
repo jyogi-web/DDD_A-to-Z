@@ -9,10 +9,12 @@ import (
 
 	"github.com/joho/godotenv"
 	authapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/auth"
+	contributionpointapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/contributionpoint"
 	githubapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/github"
 	guildapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/guild"
 	mypageapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/mypage"
 	profileapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/profile"
+	analysisapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/repositoryanalysis"
 	contributionpointdomain "github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/contributionpoint"
 	"github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/user"
 	"github.com/jyogi-web/ddd-a-to-z/services/api/internal/infrastructure/config"
@@ -49,7 +51,7 @@ func main() {
 		}
 	}()
 
-	authController, repositoryController, guildController, mypageController, profileController, err := buildControllers(logger, db)
+	authController, repositoryController, guildController, mypageController, profileController, analysisController, err := buildControllers(logger, db)
 	if err != nil {
 		logger.Error("failed to build controllers", "error", err)
 		os.Exit(1)
@@ -60,10 +62,10 @@ func main() {
 
 	server := &http.Server{
 		Addr:              ":" + addr,
-		Handler:           httpapi.NewRouter(logger, authController, repositoryController, guildController, mypageController, profileController),
+		Handler:           httpapi.NewRouter(logger, authController, repositoryController, guildController, mypageController, profileController, analysisController),
 		ReadHeaderTimeout: 5 * time.Second,
-		ReadTimeout:       30 * time.Second,
-		WriteTimeout:      30 * time.Second,
+		ReadTimeout:       5 * time.Minute,
+		WriteTimeout:      5 * time.Minute,
 		IdleTimeout:       60 * time.Second,
 	}
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -72,26 +74,46 @@ func main() {
 	}
 }
 
-func buildControllers(logger *slog.Logger, db *gorm.DB) (*httpapi.AuthController, *httpapi.RepositoryController, *httpapi.GuildController, *httpapi.MypageController, *httpapi.ProfileController, error) {
+type cpManager struct {
+	inner *contributionpointapp.UseCase
+}
+
+func (m *cpManager) Earn(ctx context.Context, userID user.ID, amount int64, reason, sourceType, sourceID string) error {
+	_, err := m.inner.Earn(ctx, contributionpointapp.EarnCommand{
+		UserID:     userID,
+		PointType:  contributionpointdomain.PointTypeCP,
+		Amount:     amount,
+		Reason:     reason,
+		SourceType: sourceType,
+		SourceID:   sourceID,
+	})
+	return err
+}
+
+func (m *cpManager) GetBalance(ctx context.Context, userID user.ID) (int64, error) {
+	return m.inner.GetBalance(ctx, userID, contributionpointdomain.PointTypeCP)
+}
+
+func buildControllers(logger *slog.Logger, db *gorm.DB) (*httpapi.AuthController, *httpapi.RepositoryController, *httpapi.GuildController, *httpapi.MypageController, *httpapi.ProfileController, *httpapi.AnalysisController, error) {
 	oauthConfig, err := config.GitHubOAuthFromEnv()
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, err
 	}
 	cookieSecret, err := config.AuthCookieSecretFromEnv()
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, err
 	}
 	cookieSecure, err := config.AuthCookieSecureFromEnv()
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, err
 	}
 	tokenSecret, err := config.GitHubTokenEncryptionSecretFromEnv()
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, err
 	}
 	tokenCipher, err := security.NewTokenCipher(tokenSecret)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, err
 	}
 	frontendURL := config.EnvOrDefault("FRONTEND_URL", "http://localhost:5173")
 
@@ -104,7 +126,7 @@ func buildControllers(logger *slog.Logger, db *gorm.DB) (*httpapi.AuthController
 	profileStore := postgres.NewProfileStore(db)
 	guildStore, err := postgres.NewGuildStore(db)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, err
 	}
 	usecase := authapp.NewUseCase(
 		oauthClient,
@@ -149,7 +171,22 @@ func buildControllers(logger *slog.Logger, db *gorm.DB) (*httpapi.AuthController
 	mypageController := httpapi.NewMypageController(mypageUseCase, logger)
 	profileController := httpapi.NewProfileController(profileUseCase, logger)
 
-	return authController, repositoryController, guildController, mypageController, profileController, nil
+	cpUseCase := contributionpointapp.NewUseCase(contributionPointStore, security.NewIDGenerator("cp"))
+	cpManager := &cpManager{inner: cpUseCase}
+	analysisUseCase := analysisapp.NewUseCase(
+		authStore,
+		authStore,
+		repositoryClient,
+		repositoryStore,
+		repositoryClient,
+		repositoryClient,
+		repositoryClient,
+		cpManager,
+		cpManager,
+	)
+	analysisController := httpapi.NewAnalysisController(analysisUseCase, logger)
+
+	return authController, repositoryController, guildController, mypageController, profileController, analysisController, nil
 }
 
 // compositeCPReader combines the existing ContributionPointStore (for balance)
