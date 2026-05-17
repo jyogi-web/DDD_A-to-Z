@@ -51,14 +51,41 @@ func (s *ContributionPointStore) Record(ctx context.Context, entry contributionp
 func (s *ContributionPointStore) GetBalance(ctx context.Context, userID user.ID, pointType contributionpointdomain.PointType) (int64, error) {
 	var record pointAccountRecord
 	result := s.db.WithContext(ctx).
+		Model(&pointAccountRecord{}).
 		Select("balance").
 		Where("user_id = ? AND point_type = ?", userID, pointType).
 		Take(&record)
 	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return 0, nil
+		}
 		return 0, result.Error
 	}
 
 	return record.Balance, nil
+}
+
+func (s *ContributionPointStore) GetLastAnalyzedAt(ctx context.Context, userID user.ID, pointType contributionpointdomain.PointType) (*time.Time, error) {
+	var record pointAccountRecord
+	result := s.db.WithContext(ctx).
+		Model(&pointAccountRecord{}).
+		Select("last_analyzed_at").
+		Where("user_id = ? AND point_type = ?", userID, pointType).
+		Take(&record)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, result.Error
+	}
+	return record.LastAnalyzedAt, nil
+}
+
+func (s *ContributionPointStore) UpdateLastAnalyzedAt(ctx context.Context, userID user.ID, pointType contributionpointdomain.PointType, at time.Time) error {
+	return s.db.WithContext(ctx).
+		Model(&pointAccountRecord{}).
+		Where("user_id = ? AND point_type = ?", userID, pointType).
+		Update("last_analyzed_at", at).Error
 }
 
 func mapContributionPointStoreError(err error) error {
@@ -105,9 +132,10 @@ func (r pointLedgerRecord) toDomain() contributionpointdomain.LedgerEntry {
 }
 
 type pointAccountRecord struct {
-	UserID    string                            `gorm:"column:user_id"`
-	PointType contributionpointdomain.PointType `gorm:"column:point_type"`
-	Balance   int64                             `gorm:"column:balance"`
+	UserID         string                            `gorm:"column:user_id"`
+	PointType      contributionpointdomain.PointType `gorm:"column:point_type"`
+	Balance        int64                             `gorm:"column:balance"`
+	LastAnalyzedAt *time.Time                        `gorm:"column:last_analyzed_at"`
 }
 
 func (pointAccountRecord) TableName() string {
