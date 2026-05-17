@@ -95,6 +95,13 @@ func (u *UseCase) Analyze(ctx context.Context, sessionToken string) (AnalysisRes
 	}
 
 	since := now.Add(analysisPeriod)
+	lastAnalyzedAt, err := u.cpBalance.GetLastAnalyzedAt(ctx, appUser.ID)
+	if err != nil {
+		return AnalysisResult{}, err
+	}
+	if lastAnalyzedAt != nil && lastAnalyzedAt.After(since) {
+		since = *lastAnalyzedAt
+	}
 
 	var totalCommits int64
 	var totalPRs int64
@@ -217,6 +224,10 @@ func (u *UseCase) Analyze(ctx context.Context, sessionToken string) (AnalysisRes
 		if err := u.cp.Earn(ctx, appUser.ID, totalCP, "contribution analysis reward", "analysis", "initial"); err != nil {
 			return AnalysisResult{}, err
 		}
+	}
+
+	if err := u.cpBalance.UpdateLastAnalyzedAt(ctx, appUser.ID, now); err != nil {
+		return AnalysisResult{}, err
 	}
 
 	balance, err := u.cpBalance.GetBalance(ctx, appUser.ID)
