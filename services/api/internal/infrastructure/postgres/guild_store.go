@@ -198,6 +198,7 @@ func (s *GuildStore) UpdateMembership(ctx context.Context, membership guilddomai
 		UPDATE guild_memberships
 		SET left_at = ?, updated_at = ?
 		WHERE id = ?
+			AND left_at IS NULL
 	`, membership.LeftAt, membership.UpdatedAt, membership.ID)
 	if result.Error != nil {
 		return result.Error

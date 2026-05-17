@@ -2,10 +2,12 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
 
+	guildapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/guild"
 	guilddomain "github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/guild"
 	"github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/user"
 	"gorm.io/gorm"
@@ -218,6 +220,48 @@ func TestGuildStoreUpdateMembershipLeavesMembership(t *testing.T) {
 	}
 	if !row.UpdatedAt.Equal(leftAt) {
 		t.Fatalf("updated_at = %v, 期待値 %v", row.UpdatedAt, leftAt)
+	}
+}
+
+func TestGuildStoreUpdateMembershipRejectsAlreadyLeftMembership(t *testing.T) {
+	ctx := context.Background()
+	tx := beginPostgresTestTransaction(t, ctx)
+	store, err := NewGuildStore(tx)
+	if err != nil {
+		t.Fatalf("NewGuildStore() がエラーを返しました: %v", err)
+	}
+
+	now := time.Date(2026, 5, 15, 4, 0, 0, 0, time.UTC)
+	guildID := fmt.Sprintf("guild_already_left_test_%d", uniqueGitHubID())
+	insertPostgresTestGuild(t, ctx, tx, testGuild{
+		ID:          guildID,
+		Slug:        guildID,
+		Name:        "Already Left Test",
+		Description: "脱退済み membership の更新拒否テスト。",
+		Icon:        "A",
+		Color:       "#654321",
+		SortOrder:   1,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	})
+
+	appUser := createPostgresTestUser(t, ctx, tx)
+	membershipID := "membership_already_left_" + string(appUser.ID)
+	firstLeftAt := now.Add(time.Hour)
+	insertPostgresTestMembership(t, ctx, tx, membershipID, appUser.ID, guildID, now, &firstLeftAt)
+
+	secondLeftAt := now.Add(2 * time.Hour)
+	err = store.UpdateMembership(ctx, guilddomain.Membership{
+		ID:        guilddomain.MembershipID(membershipID),
+		UserID:    appUser.ID,
+		GuildID:   guilddomain.ID(guildID),
+		JoinedAt:  now,
+		LeftAt:    &secondLeftAt,
+		CreatedAt: now,
+		UpdatedAt: secondLeftAt,
+	})
+	if !errors.Is(err, guildapp.ErrActiveMembershipNotFound) {
+		t.Fatalf("UpdateMembership() error = %v, 期待値 ErrActiveMembershipNotFound", err)
 	}
 }
 
