@@ -299,6 +299,22 @@ func TestGuildControllerLeaveMyGuildRejectsMembershipNotFound(t *testing.T) {
 	if response.Code != stdhttp.StatusNotFound {
 		t.Fatalf("ステータスコード = %d, 期待値 %d", response.Code, stdhttp.StatusNotFound)
 	}
+
+	var body struct {
+		Error struct {
+			Code    string `json:"code"`
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+		t.Fatalf("レスポンスボディのデコードに失敗しました: %v", err)
+	}
+	if body.Error.Code != "guild_membership_not_found" {
+		t.Fatalf("error.code = %q, 期待値 guild_membership_not_found", body.Error.Code)
+	}
+	if body.Error.Message != "active guild membership not found" {
+		t.Fatalf("error.message = %q, 期待値 active guild membership not found", body.Error.Message)
+	}
 }
 
 func TestGuildControllerJoinGuildRejectsUnauthenticated(t *testing.T) {
