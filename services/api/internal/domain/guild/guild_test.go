@@ -78,3 +78,34 @@ func TestNewGuild(t *testing.T) {
 		})
 	}
 }
+
+func TestMembershipLeave(t *testing.T) {
+	joinedAt := time.Date(2026, 5, 16, 10, 0, 0, 0, time.UTC)
+	leftAt := joinedAt.Add(2 * time.Hour)
+
+	membership, err := NewMembership(Membership{
+		ID:        "membership_1",
+		UserID:    "user_1",
+		GuildID:   "guild_go",
+		JoinedAt:  joinedAt,
+		CreatedAt: joinedAt,
+		UpdatedAt: joinedAt,
+	})
+	if err != nil {
+		t.Fatalf("NewMembership() がエラーを返しました: %v", err)
+	}
+
+	leftMembership, err := membership.Leave(leftAt)
+	if err != nil {
+		t.Fatalf("Leave() がエラーを返しました: %v", err)
+	}
+	if leftMembership.LeftAt == nil {
+		t.Fatal("left_at が設定されている必要があります")
+	}
+	if !leftMembership.LeftAt.Equal(leftAt) {
+		t.Fatalf("left_at = %v, 期待値 %v", leftMembership.LeftAt, leftAt)
+	}
+	if !leftMembership.UpdatedAt.Equal(leftAt) {
+		t.Fatalf("updated_at = %v, 期待値 %v", leftMembership.UpdatedAt, leftAt)
+	}
+}

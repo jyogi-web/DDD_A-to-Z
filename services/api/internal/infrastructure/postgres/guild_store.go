@@ -193,6 +193,23 @@ func (s *GuildStore) CreateMembership(ctx context.Context, membership guilddomai
 	return nil
 }
 
+func (s *GuildStore) UpdateMembership(ctx context.Context, membership guilddomain.Membership) error {
+	result := s.db.WithContext(ctx).Exec(`
+		UPDATE guild_memberships
+		SET left_at = ?, updated_at = ?
+		WHERE id = ?
+	`, membership.LeftAt, membership.UpdatedAt, membership.ID)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return guildapp.ErrActiveMembershipNotFound
+	}
+
+	return nil
+}
+
 type guildRecord struct {
 	ID          guilddomain.ID `gorm:"column:id"`
 	Slug        string         `gorm:"column:slug"`
