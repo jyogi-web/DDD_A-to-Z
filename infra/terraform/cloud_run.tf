@@ -1,0 +1,142 @@
+# ============================================================
+# cloud_run.tf — Cloud Run サービスの定義
+# ============================================================
+#
+# Cloud Run は Docker コンテナをサーバーレスで動かす GCP サービス。
+# サーバーの管理不要、リクエストがなければインスタンス数ゼロになりコストゼロ。
+#
+# ── Terraform と deploy.yml の役割分担 ───────────────────
+# Terraform: サービスの「設定」を管理（メモリ、CPU、スケール、環境変数など）
+# deploy.yml: サービスの「イメージ」だけを差し替える（gcloud run deploy）
+#
+# イメージの差し替えは Terraform 管轄外なので、
+# deploy.yml で gcloud run deploy を実行しても Terraform の設定は上書きされない。
+#
+# ── スケール設定について ──────────────────────────────────
+# min_instance_count = 0:
+#   リクエストがなければインスタンスを0にする（コスト削減）
+#   MVPフェーズではアクセスが少ないため0からスタート
+#   コールドスタート（初回リクエストが遅くなる）が気になったら 1 に上げる
+#
+# max_instance_count = 10:
+#   同時に最大10インスタンスまでスケールアウト
+#   MVP規模では十分。トラフィックが増えたら上げる
+#
+# ── リソース設定について ──────────────────────────────────
+# memory = "512Mi": MVP では十分。Go は省メモリなので余裕がある
+# cpu = "1":        1 vCPU。負荷が上がったら "2" に変更する
+# timeout = "30s":  リクエストの最大処理時間。GitHub API 呼び出しを含むので30秒
+# ============================================================
+
+locals {
+  # 初回 tofu apply 時はまだ Artifact Registry にイメージがないため placeholder を使う。
+  # main に push した時に deploy.yml が実際のイメージに差し替える。
+  image = "us-docker.pkg.dev/cloudrun/container/hello:latest"
+}
+
+resource "google_cloud_run_v2_service" "api" {
+  project  = var.project_id
+  name     = "lang-war-api"
+  location = var.region
+
+  # false にしないと terraform destroy でサービスを削除できない
+  # 誤削除防止のためデフォルトは true だが、開発中は false にしておく
+  deletion_protection = false
+
+  template {
+    scaling {
+      min_instance_count = 0
+      max_instance_count = 10
+    }
+
+    containers {
+      image = local.image
+
+      ports {
+        container_port = 8080 # Go サーバーが listen するポート
+      }
+
+      resources {
+        limits = {
+          cpu    = "1"
+          memory = "512Mi"
+        }
+      }
+
+      # 環境変数は Secret Manager から参照する
+      # アプリは os.Getenv("DATABASE_URL") で普通に読める
+      # 値は起動時に Secret Manager から自動取得されるため、
+      # コードや設定ファイルに平文で書く必要がない
+
+      env {
+        name = "DATABASE_URL"
+        value_source {
+          secret_key_ref {
+            secret  = "lang-war-database-url"
+            version = "latest" # 常に最新バージョンを参照
+          }
+        }
+      }
+
+      env {
+        name = "GITHUB_CLIENT_ID"
+        value_source {
+          secret_key_ref {
+            secret  = "lang-war-github-client-id"
+            version = "latest"
+          }
+        }
+      }
+
+      env {
+        name = "GITHUB_CLIENT_SECRET"
+        value_source {
+          secret_key_ref {
+            secret  = "lang-war-github-client-secret"
+            version = "latest"
+          }
+        }
+      }
+
+      env {
+        name = "SESSION_SECRET"
+        value_source {
+          secret_key_ref {
+            secret  = "lang-war-session-secret"
+            version = "latest"
+          }
+        }
+      }
+    }
+
+    timeout = "30s"
+  }
+
+  # Secret Manager の箱と Artifact Registry が作られてから Cloud Run を作る
+  depends_on = [
+    google_artifact_registry_repository.api,
+    google_secret_manager_secret.secrets,
+  ]
+
+  # GCP が scaling ブロックに manual_instance_count を自動付与するため
+  # tofu plan のたびに差分として検出される。実態は変わらないので無視する。
+  lifecycle {
+    ignore_changes = [
+      # GCP がトップレベルに scaling ブロックを自動付与するため
+      # plan のたびに差分として検出される。実態は変わらないので無視する。
+      scaling,
+    ]
+  }
+}
+
+# ── パブリックアクセス設定 ────────────────────────────────
+# Cloud Run はデフォルトで認証が必要。
+# Lang War の API は外部からアクセスできる必要があるため、
+# allUsers（誰でも）に roles/run.invoker（呼び出し権限）を付与する。
+resource "google_cloud_run_v2_service_iam_member" "public" {
+  project  = var.project_id
+  location = var.region
+  name     = google_cloud_run_v2_service.api.name
+  role     = "roles/run.invoker"
+  member   = "allUsers"
+}

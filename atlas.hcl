@@ -30,3 +30,17 @@ env "ci" {
     }
   }
 }
+
+env "prod" {
+  url = getenv("DATABASE_URL")
+  src = "file://db/schema"
+  dev = "docker://postgres/17/dev?search_path=public"
+
+  migration {
+    dir = "file://db/migrations"
+  }
+
+  schema {
+    src = "file://db/schema"
+  }
+}
