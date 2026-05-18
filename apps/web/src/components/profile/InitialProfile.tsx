@@ -250,7 +250,7 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
       osc.type = "square";
       // 少しランダムに周波数を揺らしてレトロな「喋り声」感を出す
       osc.frequency.setValueAtTime(700 + Math.random() * 100, ctx.currentTime);
-      gain.gain.setValueAtTime(0.03, ctx.currentTime);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
       osc.connect(gain);
       gain.connect(ctx.destination);
