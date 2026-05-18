@@ -44,7 +44,7 @@ jobs:
       # Neon DB に migration を適用
       - name: Run DB migrations
         env:
-          DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+          NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
         run: nix develop -c ./scripts/atlas.sh migrate apply --env prod
 
       # Artifact Registry に push するため Docker を認証
