@@ -77,6 +77,9 @@ func NewInventoryItem(item InventoryItem) (InventoryItem, error) {
 	if strings.TrimSpace(string(item.BuildingType)) == "" {
 		return InventoryItem{}, errors.New("guild town inventory building type is required")
 	}
+	if _, ok := FindBuildingMaster(item.BuildingType); !ok {
+		return InventoryItem{}, errors.New("guild town inventory building type is unknown")
+	}
 	if item.Quantity < 0 {
 		return InventoryItem{}, errors.New("guild town inventory quantity cannot be negative")
 	}
@@ -99,6 +102,9 @@ func NewPlacement(placement Placement) (Placement, error) {
 	}
 	if strings.TrimSpace(string(placement.BuildingType)) == "" {
 		return Placement{}, errors.New("guild town placement building type is required")
+	}
+	if _, ok := FindBuildingMaster(placement.BuildingType); !ok {
+		return Placement{}, errors.New("guild town placement building type is unknown")
 	}
 	if placement.X < 0 {
 		return Placement{}, errors.New("guild town placement x cannot be negative")
