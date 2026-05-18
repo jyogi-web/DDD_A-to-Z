@@ -22,6 +22,8 @@
             pkgs.git
             pkgs.golangci-lint
             pkgs.nodejs_24
+            pkgs.google-cloud-sdk
+            pkgs.opentofu
             pnpmPackage
             goPackage
           ];

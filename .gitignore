@@ -5,6 +5,7 @@
 .env
 .env.*
 !.env.example
+!.env.prod.example
 
 node_modules/
 dist/
@@ -15,3 +16,8 @@ tmp/
 
 bin/
 
+# Terraform
+*.tfvars
+!infra/terraform/terraform.tfvars
+*.tfvars.json
+.terraform/

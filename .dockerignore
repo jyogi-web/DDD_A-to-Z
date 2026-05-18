@@ -1,0 +1,14 @@
+.git
+.cache
+.turbo
+.direnv
+node_modules
+dist
+coverage
+tmp
+*.log
+
+.env
+.env.*
+!.env.example
+!.env.prod.example

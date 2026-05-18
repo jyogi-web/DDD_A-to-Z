@@ -1,0 +1,78 @@
+name: Deploy
+
+permissions:
+  contents: read
+  id-token: write # Workload Identity Federation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/deploy.yml"
+      - "services/api/**"
+      - "db/**"
+      - "go.work"
+      - "go.work.sum"
+
+env:
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  GCP_REGION: asia-northeast1
+  CLOUD_RUN_SERVICE: lang-war-api
+  IMAGE: asia-northeast1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/lang-war/api
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@21a544727d0c62386e78b4befe52d19ad12692e3
+
+      # Workload Identity Federation で keyless 認証
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f
+
+      # Neon DB に migration を適用
+      - name: Run DB migrations
+        env:
+          NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+        run: nix develop -c ./scripts/atlas.sh migrate apply --env prod
+
+      # Artifact Registry に push するため Docker を認証
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker asia-northeast1-docker.pkg.dev --quiet
+
+      - name: Build and push Docker image
+        run: |
+          docker build \
+            -f services/api/Dockerfile \
+            -t ${{ env.IMAGE }}:${{ github.sha }} \
+            -t ${{ env.IMAGE }}:latest \
+            .
+
+          docker push ${{ env.IMAGE }}:${{ github.sha }}
+          docker push ${{ env.IMAGE }}:latest
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${{ env.CLOUD_RUN_SERVICE }} \
+            --image=${{ env.IMAGE }}:${{ github.sha }} \
+            --region=${{ env.GCP_REGION }} \
+            --platform=managed \
+            --allow-unauthenticated \
+            --set-secrets="DATABASE_URL=lang-war-database-url:latest,GITHUB_CLIENT_ID=lang-war-github-client-id:latest,GITHUB_CLIENT_SECRET=lang-war-github-client-secret:latest,GITHUB_REDIRECT_URL=lang-war-github-redirect-url:latest,AUTH_COOKIE_SECRET=lang-war-auth-cookie-secret:latest,GITHUB_TOKEN_ENCRYPTION_SECRET=lang-war-github-token-encryption-secret:latest" \
+            --port=8080 \
+            --min-instances=0 \
+            --max-instances=10 \
+            --memory=512Mi \
+            --cpu=1 \
+            --timeout=30
