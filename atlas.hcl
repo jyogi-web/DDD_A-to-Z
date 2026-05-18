@@ -38,6 +38,7 @@ env "prod" {
 
   migration {
     dir = "file://db/migrations"
+    revisions_schema = "public"
   }
 
   schema {
