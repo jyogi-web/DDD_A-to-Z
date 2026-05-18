@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { ParticleBackground } from "../shared/ParticleBackground";
 import { AnalyzingPanel } from "./AnalyzingPanel";
@@ -13,6 +13,7 @@ export function ContributionAnalysis({ onComplete }: ContributionAnalysisProps) 
   const [phase, setPhase] = useState<"analyzing" | "complete" | "error">("analyzing");
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<AnalysisResult | null>(null);
+  const promiseRef = useRef<Promise<AnalysisResult> | null>(null);
 
   useEffect(() => {
     if (phase !== "analyzing") return;
@@ -30,7 +31,12 @@ export function ContributionAnalysis({ onComplete }: ContributionAnalysisProps) 
 
     const progTimer = setInterval(advanceProgress, 1400);
 
-    analyzeContribution()
+    if (!promiseRef.current) {
+      promiseRef.current = analyzeContribution();
+    }
+    const promise = promiseRef.current;
+
+    promise
       .then((data) => {
         if (!alive) return;
         setResult(data);
@@ -60,6 +66,7 @@ export function ContributionAnalysis({ onComplete }: ContributionAnalysisProps) 
   const handleRetry = useCallback(() => {
     setProgress(0);
     setPhase("analyzing");
+    promiseRef.current = null;
   }, []);
 
   return (
