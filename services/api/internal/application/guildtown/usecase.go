@@ -134,7 +134,11 @@ func (u *UseCase) SavePlacements(ctx context.Context, sessionToken string, comma
 		return TownState{}, err
 	}
 
-	return u.GetTown(ctx, sessionToken)
+	return TownState{
+		Buildings:  guildtowndomain.DefaultBuildingMasters,
+		Inventory:  inventory,
+		Placements: placements,
+	}, nil
 }
 
 func (u *UseCase) requireGuildID(ctx context.Context, sessionToken string) (guilddomain.ID, error) {

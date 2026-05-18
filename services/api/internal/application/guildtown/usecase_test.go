@@ -12,9 +12,10 @@ import (
 )
 
 type testRepository struct {
-	inventory  []guildtowndomain.InventoryItem
-	placements []guildtowndomain.Placement
-	replaced   []guildtowndomain.Placement
+	inventory           []guildtowndomain.InventoryItem
+	placements          []guildtowndomain.Placement
+	replaced            []guildtowndomain.Placement
+	listPlacementsCalls int
 }
 
 func (r *testRepository) ListInventory(ctx context.Context, guildID guilddomain.ID) ([]guildtowndomain.InventoryItem, error) {
@@ -22,6 +23,7 @@ func (r *testRepository) ListInventory(ctx context.Context, guildID guilddomain.
 }
 
 func (r *testRepository) ListPlacements(ctx context.Context, guildID guilddomain.ID) ([]guildtowndomain.Placement, error) {
+	r.listPlacementsCalls++
 	return r.placements, nil
 }
 
@@ -92,6 +94,9 @@ func TestUseCaseSavePlacements(t *testing.T) {
 	}
 	if len(state.Placements) != 1 {
 		t.Fatalf("state placements length = %d, 期待値 1", len(state.Placements))
+	}
+	if repository.listPlacementsCalls != 0 {
+		t.Fatalf("ListPlacements() calls = %d, 期待値 0", repository.listPlacementsCalls)
 	}
 }
 
