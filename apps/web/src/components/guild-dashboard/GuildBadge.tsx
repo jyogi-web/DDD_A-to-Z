@@ -1,7 +1,18 @@
 import { motion } from "framer-motion";
+import type { DisplayGuild } from "../../features/guild/presentation";
 import { steppedEase } from "../../lib/animationUtils";
 
-export function GuildBadge() {
+interface GuildBadgeProps {
+  guild: DisplayGuild | null;
+  isLoading: boolean;
+}
+
+export function GuildBadge({ guild, isLoading }: GuildBadgeProps) {
+  const icon = isLoading ? "..." : (guild?.icon ?? "--");
+  const name = isLoading ? "SYNCING..." : guild ? `${guild.name} Guild` : "NO GUILD";
+  const accent = guild?.accent ?? "#9be7ff";
+  const color = guild?.color ?? "#00f5ff";
+
   return (
     <motion.aside
       initial={{ opacity: 0, x: -16 }}
@@ -42,12 +53,12 @@ export function GuildBadge() {
           background:
             "linear-gradient(135deg, rgba(0,245,255,0.28), rgba(255,217,102,0.16)), #061326",
           boxShadow: "inset 0 0 16px rgba(0,245,255,0.22), 3px 3px 0 rgba(0,0,0,0.42)",
-          color: "#ffd966",
+          color: accent,
           fontSize: "1.55rem",
           lineHeight: 1,
         }}
       >
-        TS
+        {icon}
       </div>
       <div style={{ minWidth: 0 }}>
         <span
@@ -70,7 +81,7 @@ export function GuildBadge() {
             overflowWrap: "anywhere",
           }}
         >
-          TypeScript Guild
+          {name}
         </strong>
         <span
           aria-label="Current season"
@@ -78,14 +89,14 @@ export function GuildBadge() {
             display: "block",
             width: "fit-content",
             marginTop: "8px",
-            border: "2px solid rgba(0, 245, 255, 0.66)",
+            border: `2px solid ${color}aa`,
             background: "rgba(1, 8, 22, 0.7)",
-            boxShadow: "0 0 12px rgba(0,245,255,0.18), inset 0 0 12px rgba(0,245,255,0.12)",
-            color: "#9be7ff",
+            boxShadow: `0 0 12px ${color}33, inset 0 0 12px ${color}22`,
+            color: accent,
             fontSize: "0.58rem",
             lineHeight: 1.5,
             padding: "4px 8px",
-            textShadow: "0 0 8px rgba(0,245,255,0.72)",
+            textShadow: `0 0 8px ${color}`,
           }}
         >
           SEASON 1

@@ -1,23 +1,17 @@
 import { motion } from "framer-motion";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { PATHS } from "../../constants/paths";
+import { AUDIO_ASSETS } from "../../features/audio/audioAssets";
+import { useAudioSettings } from "../../features/audio/useAudioSettings";
+import { fetchMyGuild, leaveGuild } from "../../features/guild/api";
+import { toDisplayGuild, type DisplayGuild } from "../../features/guild/presentation";
 import { BACK_NAVIGATION_SE_SRC, useBackNavigationSe } from "../../hooks/useBackNavigationSe";
 import { steppedEase } from "../../lib/animationUtils";
+import { ApiError } from "../../lib/api/client";
 import styles from "./MyGuildDetails.module.css";
 
 interface MyGuildDetailsProps {
   onNavigate: (path: string) => void;
-}
-
-interface GuildDetails {
-  id: string;
-  slug: string;
-  name: string;
-  description: string;
-  icon: string;
-  color: string;
-  level: number;
-  totalCp: number;
-  memberCount: number;
-  memberLimit: number;
 }
 
 interface GuildMember {
@@ -28,20 +22,6 @@ interface GuildMember {
   contributionCp: number;
   isCurrentUser?: boolean;
 }
-
-const MY_GUILD: GuildDetails = {
-  id: "guild_typescript",
-  slug: "typescript",
-  name: "TypeScript Guild",
-  description:
-    "型の力でフロントからバックエンドまで支える、適応型のギルド。作戦会議室では、今日の貢献と次の一手がネオンログとして共有されます。",
-  icon: "TS",
-  color: "#3178c6",
-  level: 17,
-  totalCp: 125400,
-  memberCount: 4,
-  memberLimit: 10,
-};
 
 const MEMBERS: GuildMember[] = [
   {
@@ -78,12 +58,114 @@ const MEMBERS: GuildMember[] = [
 const panelTransition = { duration: 0.34, ease: steppedEase(6) };
 
 export function MyGuildDetails({ onNavigate }: MyGuildDetailsProps) {
+  const { isSeEnabled } = useAudioSettings();
   const { backNavigationSeRef, navigateBackWithSe } = useBackNavigationSe(onNavigate);
-  const stats = [
-    { label: "GUILD LEVEL", value: `LV.${MY_GUILD.level}` },
-    { label: "TOTAL CP", value: MY_GUILD.totalCp.toLocaleString() },
-    { label: "MEMBERS", value: `${MY_GUILD.memberCount}/${MY_GUILD.memberLimit}` },
-  ];
+  const confirmModalSeRef = useRef<HTMLAudioElement | null>(null);
+  const modalCancelSeRef = useRef<HTMLAudioElement | null>(null);
+  const modalConfirmSeRef = useRef<HTMLAudioElement | null>(null);
+  const [guild, setGuild] = useState<DisplayGuild | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLeaving, setIsLeaving] = useState(false);
+  const [isLeaveConfirmOpen, setIsLeaveConfirmOpen] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const playSe = useCallback(
+    (audio: HTMLAudioElement | null) => {
+      if (!audio || !isSeEnabled) {
+        return;
+      }
+
+      if (audio.preload === "none" && audio.readyState === HTMLMediaElement.HAVE_NOTHING) {
+        audio.load();
+      }
+
+      audio.currentTime = 0;
+      void audio.play().catch(() => {});
+    },
+    [isSeEnabled],
+  );
+  const openLeaveConfirm = () => {
+    playSe(confirmModalSeRef.current);
+    setIsLeaveConfirmOpen(true);
+  };
+  const cancelLeaveConfirm = () => {
+    playSe(modalCancelSeRef.current);
+    setIsLeaveConfirmOpen(false);
+  };
+  const stats = useMemo(() => {
+    const displayGuild = guild;
+
+    return [
+      { label: "GUILD LEVEL", value: displayGuild ? `LV.${displayGuild.sortOrder + 1}` : "--" },
+      {
+        label: "LAST SEASON CP",
+        value: displayGuild ? displayGuild.previousSeasonCp.toLocaleString() : "--",
+      },
+      {
+        label: "MEMBERS",
+        value: displayGuild ? displayGuild.memberCount.toLocaleString() : "--",
+      },
+    ];
+  }, [guild]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchMyGuild()
+      .then((data) => {
+        if (!isMounted) {
+          return;
+        }
+
+        if (!data?.guild) {
+          onNavigate(PATHS.GUILD_SELECT);
+          return;
+        }
+
+        setGuild(toDisplayGuild(data.guild));
+      })
+      .catch((error) => {
+        if (!isMounted) {
+          return;
+        }
+
+        console.error("failed to fetch my guild details", error);
+        setStatusMessage("ギルド情報を取得できませんでした。時間を置いて再度お試しください。");
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [onNavigate]);
+
+  const leaveCurrentGuild = async () => {
+    if (isLeaving) {
+      return;
+    }
+
+    setIsLeaving(true);
+    setStatusMessage(null);
+    playSe(modalConfirmSeRef.current);
+    try {
+      await leaveGuild();
+      onNavigate(PATHS.GUILD_SELECT);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        onNavigate(PATHS.GUILD_SELECT);
+        return;
+      }
+
+      console.error("failed to leave guild", error);
+      setStatusMessage("ギルド脱退に失敗しました。少し時間を置いて再度お試しください。");
+    } finally {
+      setIsLeaving(false);
+      setIsLeaveConfirmOpen(false);
+    }
+  };
 
   return (
     <main className={styles.main}>
@@ -91,6 +173,27 @@ export function MyGuildDetails({ onNavigate }: MyGuildDetailsProps) {
         ref={backNavigationSeRef}
         src={BACK_NAVIGATION_SE_SRC}
         preload="none"
+        aria-hidden="true"
+      />
+      <audio
+        ref={confirmModalSeRef}
+        src={AUDIO_ASSETS.se.confirmModal}
+        preload="none"
+        muted={!isSeEnabled}
+        aria-hidden="true"
+      />
+      <audio
+        ref={modalCancelSeRef}
+        src={AUDIO_ASSETS.se.modalCancel}
+        preload="none"
+        muted={!isSeEnabled}
+        aria-hidden="true"
+      />
+      <audio
+        ref={modalConfirmSeRef}
+        src={AUDIO_ASSETS.se.modalConfirm}
+        preload="none"
+        muted={!isSeEnabled}
         aria-hidden="true"
       />
 
@@ -117,18 +220,23 @@ export function MyGuildDetails({ onNavigate }: MyGuildDetailsProps) {
             aria-labelledby="my-guild-title"
           >
             <div className={styles.identity}>
-              <div className={styles.emblem} aria-hidden="true" style={{ color: MY_GUILD.color }}>
-                {MY_GUILD.icon}
+              <div className={styles.emblem} aria-hidden="true" style={{ color: guild?.color }}>
+                {isLoading ? "..." : (guild?.icon ?? "--")}
               </div>
               <div>
-                <span className={styles.eyebrow}>CURRENT GUILD / {MY_GUILD.slug}</span>
+                <span className={styles.eyebrow}>
+                  CURRENT GUILD / {guild?.slug ?? (isLoading ? "SYNCING" : "NONE")}
+                </span>
                 <h1 className={styles.title} id="my-guild-title">
-                  {MY_GUILD.name}
+                  {guild ? `${guild.name} Guild` : "Loading Guild"}
                 </h1>
               </div>
             </div>
 
-            <p className={styles.description}>{MY_GUILD.description}</p>
+            <p className={styles.description}>
+              {guild?.description ??
+                "所属ギルドの作戦情報を同期しています。接続が完了すると現在のギルドが表示されます。"}
+            </p>
 
             <div className={styles.stats} aria-label="Guild stats">
               {stats.map((stat) => (
@@ -151,12 +259,19 @@ export function MyGuildDetails({ onNavigate }: MyGuildDetailsProps) {
               <motion.button
                 className={styles.leaveButton}
                 type="button"
+                disabled={isLeaving || isLoading || !guild}
                 whileHover={{ y: -2, scale: 1.02 }}
                 whileTap={{ y: 2, scale: 0.98 }}
+                onClick={openLeaveConfirm}
               >
                 LEAVE GUILD
               </motion.button>
             </div>
+            {statusMessage && (
+              <p className={styles.statusMessage} role="alert">
+                {statusMessage}
+              </p>
+            )}
           </motion.section>
 
           <motion.section
@@ -202,7 +317,110 @@ export function MyGuildDetails({ onNavigate }: MyGuildDetailsProps) {
         </div>
       </div>
 
+      {isLeaveConfirmOpen && (
+        <LeaveGuildConfirmDialog
+          guildName={guild ? `${guild.name} Guild` : "current guild"}
+          isLeaving={isLeaving}
+          onCancel={cancelLeaveConfirm}
+          onConfirm={() => void leaveCurrentGuild()}
+        />
+      )}
+
       <div className={styles.scanline} aria-hidden="true" />
     </main>
+  );
+}
+
+function LeaveGuildConfirmDialog({
+  guildName,
+  isLeaving,
+  onCancel,
+  onConfirm,
+}: {
+  guildName: string;
+  isLeaving: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    previousFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    cancelButtonRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !isLeaving) {
+        event.preventDefault();
+        onCancel();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previousFocusRef.current?.focus();
+    };
+  }, [isLeaving, onCancel]);
+
+  return (
+    <motion.div
+      role="presentation"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className={styles.confirmBackdrop}
+      onClick={() => {
+        if (!isLeaving) {
+          onCancel();
+        }
+      }}
+    >
+      <motion.div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="leave-guild-dialog-title"
+        aria-describedby="leave-guild-dialog-description"
+        tabIndex={-1}
+        initial={{ opacity: 0, y: 18, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.18, ease: "easeOut" }}
+        className={styles.confirmDialog}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className={styles.confirmTitle} id="leave-guild-dialog-title">
+          LEAVE GUILD?
+        </div>
+        <p className={styles.confirmBody} id="leave-guild-dialog-description">
+          {guildName} から脱退しますか？
+        </p>
+        <div className={styles.confirmActions}>
+          <motion.button
+            ref={cancelButtonRef}
+            className={styles.confirmCancelButton}
+            type="button"
+            disabled={isLeaving}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ y: 2, scale: 0.98 }}
+            onClick={onCancel}
+          >
+            CANCEL
+          </motion.button>
+          <motion.button
+            className={styles.confirmLeaveButton}
+            type="button"
+            disabled={isLeaving}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ y: 2, scale: 0.98 }}
+            onClick={onConfirm}
+          >
+            {isLeaving ? "LEAVING..." : "LEAVE"}
+          </motion.button>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }

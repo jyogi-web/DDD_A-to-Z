@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AUDIO_ASSETS } from "../../features/audio/audioAssets";
 import { useAudioSettings } from "../../features/audio/useAudioSettings";
 import { fetchMyGuild } from "../../features/guild/api";
+import { toDisplayGuild, type DisplayGuild } from "../../features/guild/presentation";
 import { BACK_NAVIGATION_SE_SRC, useBackNavigationSe } from "../../hooks/useBackNavigationSe";
 import { steppedEase } from "../../lib/animationUtils";
 import { PATHS } from "../../constants/paths";
@@ -26,6 +27,8 @@ export function GuildDashboard({ onNavigate }: GuildDashboardProps) {
   const [activeTab, setActiveTab] = useState<GuildTab>("activity");
   const [chatView, setChatView] = useState<ChatView>("closed");
   const [logs, setLogs] = useState(INITIAL_LOGS);
+  const [currentGuild, setCurrentGuild] = useState<DisplayGuild | null>(null);
+  const [isCurrentGuildLoaded, setIsCurrentGuildLoaded] = useState(false);
   const { backNavigationSeRef, navigateBackWithSe } = useBackNavigationSe(onNavigate);
   const tabSwitchSeRef = useRef<HTMLAudioElement | null>(null);
 
@@ -65,13 +68,37 @@ export function GuildDashboard({ onNavigate }: GuildDashboardProps) {
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
+
     fetchMyGuild()
       .then((data) => {
+        if (!isMounted) {
+          return;
+        }
+
         if (!data?.guild) {
           onNavigate(PATHS.GUILD_SELECT);
+          return;
         }
+
+        setCurrentGuild(toDisplayGuild(data.guild));
       })
-      .catch(console.error);
+      .catch((error) => {
+        if (!isMounted) {
+          return;
+        }
+
+        console.error("failed to fetch my guild for dashboard", error);
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsCurrentGuildLoaded(true);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, [onNavigate]);
 
   return (
@@ -125,13 +152,15 @@ export function GuildDashboard({ onNavigate }: GuildDashboardProps) {
 
         <DashboardMonitor
           activeTab={activeTab}
+          guild={currentGuild}
+          isGuildLoading={!isCurrentGuildLoaded}
           logs={logs}
           onSwitchTab={switchTab}
           tabs={GUILD_TABS}
         />
       </div>
 
-      <GuildBadge />
+      <GuildBadge guild={currentGuild} isLoading={!isCurrentGuildLoaded} />
       <GuildNavigation onNavigate={onNavigate} />
       <motion.button
         type="button"
