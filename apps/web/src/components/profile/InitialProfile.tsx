@@ -31,6 +31,8 @@ const PIXEL_WIPE_TILES = Array.from({ length: 48 }, (_, i) => ({
 const EMPTY_NAME_WARNING_TEXT = "むむっ、名前がないぞ！\nコードネームを入力してくれ。";
 const buildNameConfirmText = (name: string) =>
   `そのコードネームは「${name}」でよいのだな？\nよければ、旅立ちの合図をくれ。`;
+const buildSendoffText = (name: string) =>
+  `よし、「${name}」よ。\nコードの世界へ、いってらっしゃい！`;
 
 function CodeRain() {
   return (
@@ -212,9 +214,11 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
   const [displayedText, setDisplayedText] = useState("");
   const [angryDisplayedText, setAngryDisplayedText] = useState("");
   const [confirmDisplayedText, setConfirmDisplayedText] = useState("");
+  const [sendoffDisplayedText, setSendoffDisplayedText] = useState("");
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isGopherAngry, setIsGopherAngry] = useState(false);
   const [isConfirmingName, setIsConfirmingName] = useState(false);
+  const [isSendingOff, setIsSendingOff] = useState(false);
   const fullText = "歓迎しよう、新たな挑戦者よ。\n君のコードネームを教えてくれ。";
 
   // Web Audio APIによるピコピコ音の準備
@@ -223,6 +227,7 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
   const angryTimeoutRef = useRef<number | null>(null);
   const angrySpeechIntervalRef = useRef<number | null>(null);
   const confirmSpeechIntervalRef = useRef<number | null>(null);
+  const sendoffSpeechIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
     try {
@@ -251,6 +256,9 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
       }
       if (confirmSpeechIntervalRef.current !== null) {
         window.clearInterval(confirmSpeechIntervalRef.current);
+      }
+      if (sendoffSpeechIntervalRef.current !== null) {
+        window.clearInterval(sendoffSpeechIntervalRef.current);
       }
     };
   }, []);
@@ -354,6 +362,32 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
     [playBeep],
   );
 
+  const playSendoffSpeech = useCallback(
+    (name: string, onDone: () => void) => {
+      if (sendoffSpeechIntervalRef.current !== null) {
+        window.clearInterval(sendoffSpeechIntervalRef.current);
+      }
+
+      const sendoffText = buildSendoffText(name);
+      setSendoffDisplayedText("");
+      let i = 0;
+      sendoffSpeechIntervalRef.current = window.setInterval(() => {
+        if (i <= sendoffText.length) {
+          setSendoffDisplayedText(sendoffText.slice(0, i));
+          if (i < sendoffText.length && sendoffText[i] !== " " && sendoffText[i] !== "\n") {
+            playBeep();
+          }
+          i++;
+        } else if (sendoffSpeechIntervalRef.current !== null) {
+          window.clearInterval(sendoffSpeechIntervalRef.current);
+          sendoffSpeechIntervalRef.current = null;
+          onDone();
+        }
+      }, 82);
+    },
+    [playBeep],
+  );
+
   const playRejectBeep = useCallback(() => {
     void (async () => {
       const ctx = audioCtxRef.current;
@@ -398,9 +432,15 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
       }
       setIsConfirmingName(false);
       setConfirmDisplayedText("");
+      setIsSendingOff(false);
+      setSendoffDisplayedText("");
       if (confirmSpeechIntervalRef.current !== null) {
         window.clearInterval(confirmSpeechIntervalRef.current);
         confirmSpeechIntervalRef.current = null;
+      }
+      if (sendoffSpeechIntervalRef.current !== null) {
+        window.clearInterval(sendoffSpeechIntervalRef.current);
+        sendoffSpeechIntervalRef.current = null;
       }
       setUsername(nextUsername);
     },
@@ -463,18 +503,24 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
     const trimmedUsername = username.trim();
     if (!trimmedUsername || isTransitioning) return;
 
-    setIsTransitioning(true);
     setIsConfirmingName(false);
+    setConfirmDisplayedText("");
+    setIsSendingOff(true);
 
-    const titleStartAudio = new Audio(AUDIO_ASSETS.se.titleStart);
-    void titleStartAudio.play().catch(() => {
-      // Browser audio policies can still reject playback in some environments.
+    playSendoffSpeech(trimmedUsername, () => {
+      setIsTransitioning(true);
+      setIsSendingOff(false);
+
+      const titleStartAudio = new Audio(AUDIO_ASSETS.se.titleStart);
+      void titleStartAudio.play().catch(() => {
+        // Browser audio policies can still reject playback in some environments.
+      });
+
+      transitionTimeoutRef.current = window.setTimeout(() => {
+        onComplete(trimmedUsername);
+      }, JOURNEY_START_DELAY_MS);
     });
-
-    transitionTimeoutRef.current = window.setTimeout(() => {
-      onComplete(trimmedUsername);
-    }, JOURNEY_START_DELAY_MS);
-  }, [isTransitioning, onComplete, username]);
+  }, [isTransitioning, onComplete, playSendoffSpeech, username]);
 
   return (
     <div
@@ -572,9 +618,11 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
         >
           {isConfirmingName
             ? confirmDisplayedText
-            : isGopherAngry
-              ? angryDisplayedText
-              : displayedText}
+            : isSendingOff
+              ? sendoffDisplayedText
+              : isGopherAngry
+                ? angryDisplayedText
+                : displayedText}
           <motion.span
             animate={{ opacity: [1, 0] }}
             transition={{ duration: 0.8, repeat: Infinity, ease: steppedEase(2) }}
@@ -625,13 +673,18 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
                       y: [0, -3, 0],
                       scaleY: [1, 1.04, 1],
                     }
-                  : {
-                      scaleY: [1, 1.05, 1],
-                      y: [0, -4, 0],
-                    }
+                  : isSendingOff
+                    ? {
+                        y: [0, -5, 0],
+                        scaleY: [1, 1.06, 1],
+                      }
+                    : {
+                        scaleY: [1, 1.05, 1],
+                        y: [0, -4, 0],
+                      }
             }
             transition={{
-              duration: isGopherAngry ? 0.32 : isConfirmingName ? 0.9 : 1.5,
+              duration: isGopherAngry ? 0.32 : isConfirmingName || isSendingOff ? 0.9 : 1.5,
               repeat: isGopherAngry ? 1 : Infinity,
               ease: steppedEase(isGopherAngry ? 5 : 4),
             }}
@@ -647,8 +700,8 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
             }}
           >
             <GopherSprite
-              frameCount={isGopherAngry ? 8 : isConfirmingName ? 4 : undefined}
-              row={isGopherAngry ? 5 : isConfirmingName ? 4 : 0}
+              frameCount={isGopherAngry ? 8 : isConfirmingName || isSendingOff ? 4 : undefined}
+              row={isGopherAngry ? 5 : isConfirmingName || isSendingOff ? 4 : 0}
             />
           </motion.div>
           {isGopherAngry && (
@@ -714,7 +767,7 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
               type="text"
               value={username}
               onChange={(e) => handleUsernameChange(e.target.value)}
-              disabled={isTransitioning || isConfirmingName}
+              disabled={isTransitioning || isConfirmingName || isSendingOff}
               style={{
                 width: "100%",
                 padding: "0.8rem",
@@ -826,7 +879,7 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
               opacity: isTransitioning ? 0.75 : 1,
             }}
           >
-            {isTransitioning ? "START!" : "BEGIN JOURNEY"}
+            {isTransitioning ? "START!" : isSendingOff ? "GOOD LUCK!" : "BEGIN JOURNEY"}
           </motion.button>
         )}
       </motion.div>
