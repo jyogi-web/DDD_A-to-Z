@@ -47,7 +47,7 @@ jobs:
       - name: Run DB migrations
         env:
           NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
-        run: nix develop -c ./scripts/atlas.sh migrate apply --env prod --allow-dirty
+        run: nix develop -c ./scripts/atlas.sh migrate apply --env prod
 
       # Artifact Registry に push するため Docker を認証
       - name: Configure Docker for Artifact Registry
