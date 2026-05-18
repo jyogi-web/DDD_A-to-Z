@@ -32,6 +32,8 @@ func (c *AnalysisController) RegisterRoutes(mux *stdhttp.ServeMux) {
 }
 
 func (c *AnalysisController) analyzeContribution(w stdhttp.ResponseWriter, r *stdhttp.Request) {
+	c.logger.Info("analysis request received")
+
 	cookie, err := r.Cookie(sessionCookieName)
 	if err != nil {
 		writeAPIError(w, stdhttp.StatusUnauthorized, "unauthenticated", "unauthenticated", 0, nil)
@@ -63,6 +65,14 @@ func (c *AnalysisController) analyzeContribution(w stdhttp.ResponseWriter, r *st
 			"cp":   lb.CP,
 		})
 	}
+
+	c.logger.Info("analysis response",
+		"totalCommits", result.TotalCommits,
+		"totalPRs", result.TotalPRs,
+		"totalCP", result.TotalCP,
+		"totalBalance", result.TotalBalance,
+		"contributions", len(contributions),
+	)
 
 	if err := writeJSON(w, stdhttp.StatusOK, map[string]any{
 		"totalCommits":      result.TotalCommits,
