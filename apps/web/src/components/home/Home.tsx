@@ -11,17 +11,18 @@ import { AUDIO_ASSETS } from "../../features/audio/audioAssets";
 import { fetchMyGuild } from "../../features/guild/api";
 import { toDisplayGuild } from "../../features/guild/presentation";
 import { fetchProfile, type Profile } from "../../features/profile/api";
+import { fetchHomeCP, type HomeCPData } from "../../features/home/api";
 
 interface HomeProps {
   onNavigate: (path: string) => void | Promise<void>;
 }
 
-const player = {
+const defaultPlayer = {
   name: "DevSamurai",
   title: "Consistency Master",
   level: 18,
-  totalCp: 24680,
-  todayCp: 320,
+  totalCp: 0,
+  todayCp: 0,
 };
 
 const navItems = [
@@ -56,9 +57,14 @@ export function Home({ onNavigate }: HomeProps) {
   } = useHomeAudio(navigateFromHome);
 
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [cpData, setCpData] = useState<HomeCPData | null>(null);
 
   useEffect(() => {
     fetchProfile().then(setProfile).catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    fetchHomeCP().then(setCpData).catch(console.error);
   }, []);
 
   useEffect(() => {
@@ -184,7 +190,12 @@ export function Home({ onNavigate }: HomeProps) {
       >
         <HomeHud
           guild={guild}
-          player={{ ...player, name: profile?.display_name || player.name }}
+          player={{
+            ...defaultPlayer,
+            name: profile?.display_name || defaultPlayer.name,
+            totalCp: cpData?.total_cp ?? defaultPlayer.totalCp,
+            todayCp: cpData?.today_cp ?? defaultPlayer.todayCp,
+          }}
           onReturnTitle={openReturnTitleDialog}
         />
 
