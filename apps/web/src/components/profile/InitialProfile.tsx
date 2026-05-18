@@ -261,6 +261,40 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
     });
   }, []);
 
+  const playNameInputBeep = useCallback((isDeleting: boolean) => {
+    void (async () => {
+      const ctx = audioCtxRef.current;
+      if (!ctx) return;
+      if (ctx.state === "suspended") {
+        await ctx.resume();
+      }
+      if (ctx.state !== "running") return;
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "square";
+      osc.frequency.setValueAtTime(isDeleting ? 420 : 860, ctx.currentTime);
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.045);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.045);
+    })().catch(() => {
+      // Browser autoplay restrictions may still block sound until the next user gesture.
+    });
+  }, []);
+
+  const handleUsernameChange = useCallback(
+    (nextUsername: string) => {
+      if (nextUsername !== username) {
+        playNameInputBeep(nextUsername.length < username.length);
+      }
+      setUsername(nextUsername);
+    },
+    [playNameInputBeep, username],
+  );
+
   // タイプライターエフェクト
   useEffect(() => {
     let i = 0;
@@ -491,7 +525,7 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
             <input
               type="text"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => handleUsernameChange(e.target.value)}
               disabled={isTransitioning}
               style={{
                 width: "100%",
