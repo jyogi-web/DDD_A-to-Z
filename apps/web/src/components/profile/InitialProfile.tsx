@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
+import { AUDIO_ASSETS } from "../../features/audio/audioAssets";
 import { ParticleBackground } from "../shared/ParticleBackground";
 import { GopherSprite } from "../shared/GopherSprite";
 
 interface InitialProfileProps {
   onComplete: (username: string) => void;
 }
+
+const JOURNEY_START_DELAY_MS = 1800;
 
 // カクカクした動きを実現するためのカスタムイージング関数
 const steppedEase = (steps: number) => (t: number) => Math.floor(t * steps) / steps;
@@ -20,6 +23,21 @@ const CODE_SNIPPETS = [
   "SELECT * FROM users WHERE id = 1;",
   'int main() {\n  printf("Hello, World!");\n  return 0;\n}',
 ];
+
+const TRANSFER_LINES = [
+  "AUTHENTICATING HERO PROFILE",
+  "LOADING GUILD MAP",
+  "SYNCING CONTRIBUTION SIGNAL",
+  "DEPLOYING JOURNEY CORE",
+  "OPENING GATE",
+];
+
+const SPARKS = Array.from({ length: 28 }, (_, i) => ({
+  angle: i * 13,
+  delay: (i % 7) * 0.06,
+  distance: 220 + (i % 5) * 52,
+  size: 2 + (i % 3),
+}));
 
 function CodeRain() {
   return (
@@ -64,13 +82,142 @@ function CodeRain() {
   );
 }
 
+function JourneyStartOverlay() {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.15 }}
+      className="fixed inset-0 z-[9999] pointer-events-none overflow-hidden"
+      style={{
+        background:
+          "radial-gradient(circle at 50% 52%, rgba(0, 245, 255, 0.2) 0%, rgba(5, 5, 16, 0.86) 48%, rgba(5, 5, 16, 0.98) 100%)",
+        fontFamily: "var(--font-dot)",
+      }}
+    >
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0, 0.7, 1], scale: [0.2, 1.4, 4.8] }}
+        transition={{ duration: 1.35, ease: "easeIn" }}
+        style={{
+          position: "absolute",
+          inset: "50% auto auto 50%",
+          width: "min(78vmin, 620px)",
+          aspectRatio: "1",
+          border: "3px solid rgba(0, 245, 255, 0.9)",
+          borderRadius: "50%",
+          transform: "translate(-50%, -50%)",
+          boxShadow: "0 0 26px rgba(0, 245, 255, 0.9), inset 0 0 42px rgba(255, 255, 255, 0.55)",
+        }}
+      />
+
+      <motion.div
+        initial={{ opacity: 0, rotate: 0, scale: 0.7 }}
+        animate={{ opacity: [0, 1, 1, 0.25], rotate: 100, scale: [0.7, 1.05, 1.18, 1.25] }}
+        transition={{ duration: 1.2, ease: "easeOut" }}
+        style={{
+          position: "absolute",
+          inset: "50% auto auto 50%",
+          width: "min(62vmin, 460px)",
+          aspectRatio: "1",
+          border: "2px dashed rgba(255, 211, 107, 0.95)",
+          borderRadius: "50%",
+          transform: "translate(-50%, -50%)",
+        }}
+      />
+
+      <motion.div
+        initial={{ opacity: 0, scaleX: 0 }}
+        animate={{ opacity: [0, 1, 1, 0], scaleX: [0, 1, 1.05, 0.2] }}
+        transition={{ duration: 1.1, ease: steppedEase(9) }}
+        style={{
+          position: "absolute",
+          top: "50%",
+          left: "8%",
+          right: "8%",
+          height: "3px",
+          background:
+            "linear-gradient(90deg, transparent, rgba(0, 245, 255, 0.95), #fff, rgba(0, 245, 255, 0.95), transparent)",
+          boxShadow: "0 0 28px rgba(0, 245, 255, 0.95)",
+          transform: "translateY(-50%)",
+        }}
+      />
+
+      {SPARKS.map((spark, i) => (
+        <motion.div
+          key={i}
+          initial={{ x: 0, y: 0, opacity: 0, scale: 0.4 }}
+          animate={{
+            x: Math.cos((spark.angle * Math.PI) / 180) * spark.distance,
+            y: Math.sin((spark.angle * Math.PI) / 180) * spark.distance,
+            opacity: [0, 1, 0],
+            scale: [0.4, 1, 0.2],
+          }}
+          transition={{ duration: 0.9, delay: spark.delay, ease: "easeOut" }}
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            width: `${spark.size}px`,
+            height: "28px",
+            background: "rgba(255, 255, 255, 0.95)",
+            boxShadow: "0 0 16px rgba(0, 245, 255, 0.95)",
+            transform: `translate(-50%, -50%) rotate(${spark.angle}deg)`,
+          }}
+        />
+      ))}
+
+      <motion.div
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: [0, 1, 1, 0], y: [18, 0, 0, -10] }}
+        transition={{ duration: 1.25, ease: steppedEase(8) }}
+        style={{
+          position: "absolute",
+          left: "50%",
+          bottom: "18%",
+          width: "min(88vw, 520px)",
+          transform: "translateX(-50%)",
+          color: "rgba(255, 255, 255, 0.92)",
+          textAlign: "left",
+          fontSize: "clamp(0.7rem, 2.4vw, 0.9rem)",
+          lineHeight: 1.8,
+          textShadow: "0 0 14px rgba(0, 245, 255, 0.9)",
+        }}
+      >
+        {TRANSFER_LINES.map((line, i) => (
+          <motion.div
+            key={line}
+            initial={{ opacity: 0, x: -12 }}
+            animate={{ opacity: [0, 1, 1], x: 0 }}
+            transition={{ duration: 0.25, delay: i * 0.12, ease: steppedEase(5) }}
+          >
+            &gt; {line}
+          </motion.div>
+        ))}
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0, 0, 1] }}
+        transition={{ duration: 1.45, ease: "easeIn" }}
+        className="absolute inset-0 bg-white"
+        style={{
+          boxShadow: "inset 0 0 160px rgba(0, 245, 255, 0.8)",
+        }}
+      />
+    </motion.div>
+  );
+}
+
 export function InitialProfile({ onComplete }: InitialProfileProps) {
   const [username, setUsername] = useState("octocat"); // GitHubからの取得名を想定
   const [displayedText, setDisplayedText] = useState("");
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const fullText = "歓迎しよう、新たな挑戦者よ。\n君のコードネームを教えてくれ。";
 
   // Web Audio APIによるピコピコ音の準備
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const transitionTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     try {
@@ -88,6 +235,9 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
     return () => {
       void audioCtxRef.current?.close();
       audioCtxRef.current = null;
+      if (transitionTimeoutRef.current !== null) {
+        window.clearTimeout(transitionTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -134,6 +284,22 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
     }, 90); // 1文字ずつ表示 (ピコピコ感を出すため少し遅めの90msに設定)
     return () => clearInterval(interval);
   }, [fullText, playBeep]);
+
+  const handleBeginJourney = useCallback(() => {
+    const trimmedUsername = username.trim();
+    if (!trimmedUsername || isTransitioning) return;
+
+    setIsTransitioning(true);
+
+    const titleStartAudio = new Audio(AUDIO_ASSETS.se.titleStart);
+    void titleStartAudio.play().catch(() => {
+      // Browser audio policies can still reject playback in some environments.
+    });
+
+    transitionTimeoutRef.current = window.setTimeout(() => {
+      onComplete(trimmedUsername);
+    }, JOURNEY_START_DELAY_MS);
+  }, [isTransitioning, onComplete, username]);
 
   return (
     <div
@@ -185,8 +351,23 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
       {/* ウィンドウ展開アニメーション */}
       <motion.div
         initial={{ scaleY: 0, opacity: 0 }}
-        animate={{ scaleY: 1, opacity: 1 }}
-        transition={{ duration: 0.4, ease: steppedEase(6) }}
+        animate={{
+          scaleY: 1,
+          opacity: 1,
+          y: isTransitioning ? [0, -6, 0] : 0,
+          filter: isTransitioning
+            ? [
+                "brightness(1)",
+                "brightness(1.45) drop-shadow(0 0 24px rgba(0,245,255,0.85))",
+                "brightness(1.15)",
+              ]
+            : "brightness(1)",
+        }}
+        transition={
+          isTransitioning
+            ? { duration: 0.55, ease: steppedEase(5) }
+            : { duration: 0.4, ease: steppedEase(6) }
+        }
         style={{
           position: "relative",
           zIndex: 2,
@@ -314,6 +495,7 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              disabled={isTransitioning}
               style={{
                 width: "100%",
                 padding: "0.8rem",
@@ -333,9 +515,27 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
 
         {/* 決定ボタン */}
         <motion.button
-          whileHover={{ scale: 1.02, filter: "brightness(1.1)" }}
-          whileTap={{ scale: 0.98, y: 4, boxShadow: "0px 0px 0 var(--color-gold-dark)" }}
-          onClick={() => onComplete(username)}
+          whileHover={isTransitioning ? undefined : { scale: 1.02, filter: "brightness(1.1)" }}
+          whileTap={
+            isTransitioning
+              ? undefined
+              : { scale: 0.98, y: 4, boxShadow: "0px 0px 0 var(--color-gold-dark)" }
+          }
+          onClick={handleBeginJourney}
+          disabled={isTransitioning || username.trim().length === 0}
+          animate={
+            isTransitioning
+              ? {
+                  backgroundColor: ["var(--color-gold)", "#ffffff", "#00f5ff"],
+                  boxShadow: [
+                    "0px 4px 0 var(--color-gold-dark)",
+                    "0 0 32px rgba(255, 211, 107, 0.95)",
+                    "0 0 48px rgba(0, 245, 255, 0.95)",
+                  ],
+                }
+              : undefined
+          }
+          transition={{ duration: 0.45, ease: steppedEase(6) }}
           style={{
             marginTop: "1rem",
             width: "100%",
@@ -346,13 +546,16 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
             color: "#000",
             border: "none",
             boxShadow: "0px 4px 0 var(--color-gold-dark)",
-            cursor: "pointer",
+            cursor: isTransitioning || username.trim().length === 0 ? "not-allowed" : "pointer",
             letterSpacing: "0.05em",
+            opacity: isTransitioning || username.trim().length === 0 ? 0.75 : 1,
           }}
         >
-          BEGIN JOURNEY
+          {isTransitioning ? "LINK START" : "BEGIN JOURNEY"}
         </motion.button>
       </motion.div>
+
+      {isTransitioning && <JourneyStartOverlay />}
     </div>
   );
 }
