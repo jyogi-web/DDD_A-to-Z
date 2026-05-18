@@ -15,6 +15,7 @@ type testRepository struct {
 	guilds           []guilddomain.Guild
 	activeMembership *guilddomain.MembershipWithGuild
 	created          *guilddomain.Membership
+	updated          *guilddomain.Membership
 }
 
 func (r testRepository) ListGuilds(ctx context.Context) ([]guilddomain.Guild, error) {
@@ -44,6 +45,11 @@ func (r testRepository) FindActiveMembershipByUserID(ctx context.Context, userID
 
 func (r *testRepository) CreateMembership(ctx context.Context, membership guilddomain.Membership) error {
 	r.created = &membership
+	return nil
+}
+
+func (r *testRepository) UpdateMembership(ctx context.Context, membership guilddomain.Membership) error {
+	r.updated = &membership
 	return nil
 }
 
@@ -172,6 +178,65 @@ func TestUseCaseJoinGuildRejectsUnknownGuild(t *testing.T) {
 	_, err := usecase.JoinGuild(context.Background(), "session-token", "guild_missing")
 	if !errors.Is(err, ErrGuildNotFound) {
 		t.Fatalf("JoinGuild() error = %v, 期待値 ErrGuildNotFound", err)
+	}
+}
+
+func TestUseCaseLeaveMyGuild(t *testing.T) {
+	now := time.Date(2026, 5, 16, 13, 0, 0, 0, time.UTC)
+	activeMembership := guilddomain.MembershipWithGuild{
+		Membership: guilddomain.Membership{
+			ID:        "membership_1",
+			UserID:    "user_1",
+			GuildID:   "guild_go",
+			JoinedAt:  now.Add(-time.Hour),
+			CreatedAt: now.Add(-time.Hour),
+			UpdatedAt: now.Add(-time.Hour),
+		},
+		Guild: guilddomain.Guild{
+			ID:          "guild_go",
+			Slug:        "go",
+			Name:        "Go",
+			Description: "シンプルさと並列処理で前に進むギルド。",
+			Icon:        "GO",
+			Color:       "#00acd7",
+			SortOrder:   1,
+			CreatedAt:   now.Add(-time.Hour),
+			UpdatedAt:   now.Add(-time.Hour),
+		},
+	}
+	repository := &testRepository{activeMembership: &activeMembership}
+	usecase := NewUseCase(repository, testCurrentUserRepository{
+		appUser: user.User{ID: "user_1"},
+		ok:      true,
+	}, testIDGenerator{id: "membership_unused"})
+	usecase.now = func() time.Time { return now }
+
+	if err := usecase.LeaveMyGuild(context.Background(), "session-token"); err != nil {
+		t.Fatalf("LeaveMyGuild() がエラーを返しました: %v", err)
+	}
+	if repository.updated == nil {
+		t.Fatal("UpdateMembership() が呼ばれる必要があります")
+	}
+	if repository.updated.LeftAt == nil {
+		t.Fatal("left_at が設定されている必要があります")
+	}
+	if !repository.updated.LeftAt.Equal(now) {
+		t.Fatalf("left_at = %v, 期待値 %v", repository.updated.LeftAt, now)
+	}
+	if !repository.updated.UpdatedAt.Equal(now) {
+		t.Fatalf("updated_at = %v, 期待値 %v", repository.updated.UpdatedAt, now)
+	}
+}
+
+func TestUseCaseLeaveMyGuildRejectsMembershipNotFound(t *testing.T) {
+	usecase := NewUseCase(&testRepository{}, testCurrentUserRepository{
+		appUser: user.User{ID: "user_1"},
+		ok:      true,
+	}, testIDGenerator{id: "membership_unused"})
+
+	err := usecase.LeaveMyGuild(context.Background(), "session-token")
+	if !errors.Is(err, ErrActiveMembershipNotFound) {
+		t.Fatalf("LeaveMyGuild() error = %v, 期待値 ErrActiveMembershipNotFound", err)
 	}
 }
 

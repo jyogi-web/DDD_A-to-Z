@@ -76,7 +76,7 @@ export function GuildNavigation({ onNavigate }: GuildNavigationProps) {
       aria-label="Guild navigation"
       style={{
         position: "fixed",
-        left: "50%",
+        left: "calc(50% - clamp(120px, 10vw, 168px))",
         bottom: "calc(env(safe-area-inset-bottom, 0px) + clamp(18px, 5.2vh, 54px))",
         zIndex: 3,
         display: "grid",

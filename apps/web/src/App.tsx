@@ -11,7 +11,7 @@ import { TitleUserBadge } from "./components/title/TitleUserBadge";
 import { AUDIO_ASSETS } from "./features/audio/audioAssets";
 import { beginLogin, fetchMe, logout } from "./features/auth/api";
 import type { CurrentUser } from "./features/auth/types";
-import { hasCompletedInitialProfile } from "./features/profile/initialProfile";
+import { fetchProfile } from "./features/profile/api";
 import { useTitleAudio } from "./hooks/useTitleAudio";
 
 const containerVariants: Variants = {
@@ -46,6 +46,7 @@ function App() {
   const [isDay, setIsDay] = useState(() => isDaytime(new Date().getHours()));
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [isInitialProfileCompleted, setIsInitialProfileCompleted] = useState(false);
+  const [isProfileCheckComplete, setIsProfileCheckComplete] = useState(false);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
 
@@ -59,11 +60,22 @@ function App() {
   // ログイン状態を確認
   useEffect(() => {
     fetchMe()
-      .then((user) => {
+      .then(async (user) => {
         setCurrentUser(user);
-        setIsInitialProfileCompleted(user ? hasCompletedInitialProfile(user.id) : false);
+        if (!user) {
+          setIsInitialProfileCompleted(false);
+          setIsProfileCheckComplete(true);
+          return;
+        }
+
+        const profile = await fetchProfile();
+        setIsInitialProfileCompleted(profile !== null);
+        setIsProfileCheckComplete(true);
       })
-      .catch(() => {});
+      .catch(() => {
+        setIsInitialProfileCompleted(false);
+        setIsProfileCheckComplete(true);
+      });
   }, []);
 
   const handleLogin = beginLogin;
@@ -75,11 +87,12 @@ function App() {
     } finally {
       setCurrentUser(null);
       setIsInitialProfileCompleted(false);
+      setIsProfileCheckComplete(false);
       setIsLogoutDialogOpen(false);
     }
   };
   const handleStart = async () => {
-    if (isStarting) {
+    if (isStarting || !isProfileCheckComplete) {
       return;
     }
 
@@ -251,7 +264,7 @@ function App() {
             onLogin={handleLogin}
             onLogoutClick={() => setIsLogoutDialogOpen(true)}
             onStart={handleStart}
-            isStarting={isStarting}
+            isStarting={isStarting || (currentUser !== null && !isProfileCheckComplete)}
           />
         </motion.div>
 

@@ -10,9 +10,10 @@ import (
 )
 
 var (
-	ErrUnauthenticated = errors.New("unauthenticated")
-	ErrGuildNotFound   = errors.New("guild not found")
-	ErrAlreadyJoined   = errors.New("user already joined a guild")
+	ErrUnauthenticated          = errors.New("unauthenticated")
+	ErrGuildNotFound            = errors.New("guild not found")
+	ErrAlreadyJoined            = errors.New("user already joined a guild")
+	ErrActiveMembershipNotFound = errors.New("active guild membership not found")
 )
 
 type UseCase struct {
@@ -127,4 +128,34 @@ func (u *UseCase) GetMyGuild(ctx context.Context, sessionToken string) (guilddom
 	}
 
 	return u.repository.FindActiveMembershipByUserID(ctx, appUser.ID)
+}
+
+func (u *UseCase) LeaveMyGuild(ctx context.Context, sessionToken string) error {
+	if strings.TrimSpace(sessionToken) == "" {
+		return ErrUnauthenticated
+	}
+
+	now := u.now()
+	appUser, ok, err := u.current.FindUserBySessionToken(ctx, sessionToken, now)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return ErrUnauthenticated
+	}
+
+	membershipWithGuild, ok, err := u.repository.FindActiveMembershipByUserID(ctx, appUser.ID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return ErrActiveMembershipNotFound
+	}
+
+	leftMembership, err := membershipWithGuild.Membership.Leave(now)
+	if err != nil {
+		return err
+	}
+
+	return u.repository.UpdateMembership(ctx, leftMembership)
 }

@@ -13,6 +13,7 @@ type Repository interface {
 	FindGuildByID(ctx context.Context, guildID guilddomain.ID) (guilddomain.Guild, bool, error)
 	FindActiveMembershipByUserID(ctx context.Context, userID user.ID) (guilddomain.MembershipWithGuild, bool, error)
 	CreateMembership(ctx context.Context, membership guilddomain.Membership) error
+	UpdateMembership(ctx context.Context, membership guilddomain.Membership) error
 }
 
 type CurrentUserRepository interface {
