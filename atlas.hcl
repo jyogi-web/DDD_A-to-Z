@@ -32,7 +32,7 @@ env "ci" {
 }
 
 env "prod" {
-  url = getenv("DATABASE_URL")
+  url = getenv("NEON_DATABASE_URL")
   src = "file://db/schema"
   dev = "docker://postgres/17/dev?search_path=public"
 

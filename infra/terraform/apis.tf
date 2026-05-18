@@ -12,6 +12,7 @@
 # ============================================================
 
 locals {
+  bootstrap_api = "serviceusage.googleapis.com"
   apis = [
     "serviceusage.googleapis.com",         # API 有効化操作自体で利用
     "iam.googleapis.com",                  # IAM (Service Account, ロール管理)
@@ -23,12 +24,20 @@ locals {
   ]
 }
 
+# Service Usage API は他の API 有効化処理自体に必要なので先に有効化する
+resource "google_project_service" "serviceusage" {
+  project            = var.project_id
+  service            = local.bootstrap_api
+  disable_on_destroy = false
+}
+
 # for_each でリスト内の API をまとめて有効化している
 # toset() でリストをセット（重複なし）に変換している
 resource "google_project_service" "apis" {
-  for_each = toset(local.apis)
+  for_each = toset(setsubtract(local.apis, [local.bootstrap_api]))
 
   project            = var.project_id
   service            = each.value
   disable_on_destroy = false
+  depends_on         = [google_project_service.serviceusage]
 }
