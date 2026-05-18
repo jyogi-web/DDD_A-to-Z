@@ -65,6 +65,10 @@ func (s *GuildTownStore) ListPlacements(ctx context.Context, guildID guilddomain
 
 func (s *GuildTownStore) ReplacePlacements(ctx context.Context, guildID guilddomain.ID, placements []guildtowndomain.Placement) error {
 	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Exec(`SELECT id FROM guilds WHERE id = ? FOR UPDATE`, guildID).Error; err != nil {
+			return err
+		}
+
 		if err := tx.Exec(`DELETE FROM guild_town_placements WHERE guild_id = ?`, guildID).Error; err != nil {
 			return err
 		}
