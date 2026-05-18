@@ -37,7 +37,6 @@ type SavePlacementCommand struct {
 	X            float64
 	Y            float64
 	Width        float64
-	ZIndex       int
 }
 
 func NewUseCase(repository Repository, current CurrentUserRepository, guilds GuildRepository, ids IDGenerator) *UseCase {
