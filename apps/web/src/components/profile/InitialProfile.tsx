@@ -1,526 +1,29 @@
-import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
-import { AUDIO_ASSETS } from "../../features/audio/audioAssets";
+import { steppedEase } from "../../lib/animationUtils";
 import { ParticleBackground } from "../shared/ParticleBackground";
-import { GopherSprite } from "../shared/GopherSprite";
+import { CodeRain } from "./CodeRain";
+import { JourneyStartOverlay } from "./JourneyStartOverlay";
+import { ProfileActions } from "./ProfileActions";
+import { ProfileGopherStage } from "./ProfileGopherStage";
+import { useInitialProfileFlow } from "./useInitialProfileFlow";
 
 interface InitialProfileProps {
   onComplete: (username: string) => void;
 }
 
-const JOURNEY_START_DELAY_MS = 1800;
-
-// カクカクした動きを実現するためのカスタムイージング関数
-const steppedEase = (steps: number) => (t: number) => Math.floor(t * steps) / steps;
-
-// エンジニア要素を強調するソースコードの断片
-const CODE_SNIPPETS = [
-  'fn main() {\n  println!("Hello, world!");\n}',
-  'public static void main(String[] args) {\n  System.out.println("Hello World");\n}',
-  'def hello():\n    print("Hello, world!")',
-  'func main() {\n  fmt.Println("Hello, world!")\n}',
-  "const sum = (a: number, b: number) => a + b;",
-  "SELECT * FROM users WHERE id = 1;",
-  'int main() {\n  printf("Hello, World!");\n  return 0;\n}',
-];
-
-const PIXEL_WIPE_TILES = Array.from({ length: 48 }, (_, i) => ({
-  col: i % 8,
-  row: Math.floor(i / 8),
-}));
-const EMPTY_NAME_WARNING_TEXT = "むむっ、名前がないぞ！\nコードネームを入力してくれ。";
-const buildNameConfirmText = (name: string) =>
-  `そのコードネームは「${name}」でよいのだな？\nよければ、旅立ちの合図をくれ。`;
-const buildSendoffText = (name: string) =>
-  `よし、「${name}」よ。\nコードの世界へ、いってらっしゃい！`;
-
-function CodeRain() {
-  return (
-    <div
-      style={{
-        position: "absolute",
-        inset: 0,
-        overflow: "hidden",
-        pointerEvents: "none",
-        zIndex: 0,
-      }}
-    >
-      {CODE_SNIPPETS.map((code, i) => (
-        <motion.div
-          key={i}
-          initial={{ y: "110vh", opacity: 0 }}
-          animate={{
-            y: ["110vh", "-30vh"],
-            opacity: [0, 0.15, 0.15, 0],
-          }}
-          transition={{
-            duration: 25 + (i % 4) * 8,
-            repeat: Infinity,
-            delay: i * 3,
-            ease: "linear",
-          }}
-          style={{
-            position: "absolute",
-            left: `${8 + ((i * 14) % 75)}%`,
-            fontFamily: "var(--font-dot)",
-            fontSize: "0.85rem",
-            color: "var(--color-neon-cyan)",
-            whiteSpace: "pre",
-            filter: "blur(0.5px)",
-            textAlign: "left",
-          }}
-        >
-          {code}
-        </motion.div>
-      ))}
-    </div>
-  );
-}
-
-function JourneyStartOverlay() {
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.08 }}
-      className="fixed inset-0 z-[9999] pointer-events-none overflow-hidden"
-      style={{
-        background: "rgba(5, 5, 16, 0.72)",
-        fontFamily: "var(--font-dot)",
-      }}
-    >
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: [0, 1, 0, 1, 0] }}
-        transition={{ duration: 0.48, ease: steppedEase(2) }}
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: "#fff",
-        }}
-      />
-
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          inset: 0,
-          backgroundImage:
-            "repeating-linear-gradient(0deg, rgba(255,255,255,0.08) 0 4px, transparent 4px 8px)",
-          mixBlendMode: "screen",
-        }}
-      />
-
-      <motion.div
-        initial={{ opacity: 0, scaleX: 0 }}
-        animate={{ opacity: [0, 1, 1, 0], scaleX: [0, 1, 1, 0] }}
-        transition={{ duration: 0.72, ease: steppedEase(6) }}
-        style={{
-          position: "absolute",
-          top: "50%",
-          left: 0,
-          right: 0,
-          height: "18px",
-          background: "var(--color-pixel-white)",
-          boxShadow: "0 18px 0 var(--color-neon-cyan), 0 -18px 0 var(--color-gold)",
-          transform: "translateY(-50%)",
-          zIndex: 1,
-        }}
-      />
-
-      <motion.div
-        initial={{ opacity: 0, scale: 0.92, x: "-50%", y: "-50%" }}
-        animate={{
-          opacity: [0, 1, 1, 0],
-          scale: [0.92, 1, 1, 1.08],
-          x: "-50%",
-          y: "-50%",
-        }}
-        transition={{ duration: 1.18, ease: steppedEase(5) }}
-        style={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          width: "min(86vw, 540px)",
-          padding: "1.2rem",
-          border: "4px solid var(--color-pixel-white)",
-          background: "var(--color-navy)",
-          boxShadow: "8px 8px 0 rgba(0,0,0,0.85)",
-          color: "var(--color-gold)",
-          textAlign: "center",
-          fontFamily: "var(--font-press)",
-          fontSize: "clamp(1rem, 4.2vw, 1.55rem)",
-          lineHeight: 1.7,
-          zIndex: 2,
-        }}
-      >
-        ADVENTURE START!
-        <motion.div
-          animate={{ opacity: [1, 0, 1] }}
-          transition={{ duration: 0.24, repeat: 4, ease: steppedEase(2) }}
-          style={{
-            marginTop: "0.7rem",
-            color: "var(--color-pixel-white)",
-            fontFamily: "var(--font-dot)",
-            fontSize: "clamp(0.85rem, 3vw, 1.1rem)",
-            letterSpacing: "0.08em",
-          }}
-        >
-          NOW LOADING...
-        </motion.div>
-      </motion.div>
-
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          inset: 0,
-          display: "grid",
-          gridTemplateColumns: "repeat(8, 1fr)",
-          gridTemplateRows: "repeat(6, 1fr)",
-          zIndex: 3,
-        }}
-      >
-        {PIXEL_WIPE_TILES.map((tile, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{
-              delay: 0.92 + (tile.row + Math.abs(tile.col - 3.5)) * 0.045,
-              duration: 0.08,
-              ease: steppedEase(1),
-            }}
-            style={{
-              background: i % 3 === 0 ? "var(--color-neon-cyan)" : "var(--color-pixel-white)",
-            }}
-          />
-        ))}
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: [0, 0, 1] }}
-        transition={{ duration: 1.55, ease: steppedEase(6) }}
-        className="absolute inset-0 bg-white"
-        style={{ zIndex: 4 }}
-      />
-    </motion.div>
-  );
-}
-
 export function InitialProfile({ onComplete }: InitialProfileProps) {
-  const [username, setUsername] = useState("octocat"); // GitHubからの取得名を想定
-  const [displayedText, setDisplayedText] = useState("");
-  const [angryDisplayedText, setAngryDisplayedText] = useState("");
-  const [confirmDisplayedText, setConfirmDisplayedText] = useState("");
-  const [sendoffDisplayedText, setSendoffDisplayedText] = useState("");
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const [isGopherAngry, setIsGopherAngry] = useState(false);
-  const [isConfirmingName, setIsConfirmingName] = useState(false);
-  const [isSendingOff, setIsSendingOff] = useState(false);
-  const fullText = "歓迎しよう、新たな挑戦者よ。\n君のコードネームを教えてくれ。";
-
-  // Web Audio APIによるピコピコ音の準備
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const transitionTimeoutRef = useRef<number | null>(null);
-  const angryTimeoutRef = useRef<number | null>(null);
-  const angrySpeechIntervalRef = useRef<number | null>(null);
-  const confirmSpeechIntervalRef = useRef<number | null>(null);
-  const sendoffSpeechIntervalRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    try {
-      const AudioContext =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext?: typeof window.AudioContext })
-          .webkitAudioContext;
-      if (AudioContext) {
-        audioCtxRef.current = new AudioContext();
-      }
-    } catch {
-      // AudioContext not supported
-    }
-
-    return () => {
-      void audioCtxRef.current?.close();
-      audioCtxRef.current = null;
-      if (transitionTimeoutRef.current !== null) {
-        window.clearTimeout(transitionTimeoutRef.current);
-      }
-      if (angryTimeoutRef.current !== null) {
-        window.clearTimeout(angryTimeoutRef.current);
-      }
-      if (angrySpeechIntervalRef.current !== null) {
-        window.clearInterval(angrySpeechIntervalRef.current);
-      }
-      if (confirmSpeechIntervalRef.current !== null) {
-        window.clearInterval(confirmSpeechIntervalRef.current);
-      }
-      if (sendoffSpeechIntervalRef.current !== null) {
-        window.clearInterval(sendoffSpeechIntervalRef.current);
-      }
-    };
-  }, []);
-
-  const playBeep = useCallback(() => {
-    void (async () => {
-      const ctx = audioCtxRef.current;
-      if (!ctx) return;
-      if (ctx.state === "suspended") {
-        await ctx.resume();
-      }
-      if (ctx.state !== "running") return;
-
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "square";
-      // 少しランダムに周波数を揺らしてレトロな「喋り声」感を出す
-      osc.frequency.setValueAtTime(700 + Math.random() * 100, ctx.currentTime);
-      gain.gain.setValueAtTime(0.15, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.06);
-    })().catch(() => {
-      // Browser autoplay restrictions may still block sound until the next user gesture.
-    });
-  }, []);
-
-  const playNameInputBeep = useCallback((isDeleting: boolean) => {
-    void (async () => {
-      const ctx = audioCtxRef.current;
-      if (!ctx) return;
-      if (ctx.state === "suspended") {
-        await ctx.resume();
-      }
-      if (ctx.state !== "running") return;
-
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "square";
-      osc.frequency.setValueAtTime(isDeleting ? 420 : 860, ctx.currentTime);
-      gain.gain.setValueAtTime(0.12, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.045);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.045);
-    })().catch(() => {
-      // Browser autoplay restrictions may still block sound until the next user gesture.
-    });
-  }, []);
-
-  const playAngrySpeech = useCallback(() => {
-    if (angrySpeechIntervalRef.current !== null) {
-      window.clearInterval(angrySpeechIntervalRef.current);
-    }
-
-    setAngryDisplayedText("");
-    let i = 0;
-    angrySpeechIntervalRef.current = window.setInterval(() => {
-      if (i <= EMPTY_NAME_WARNING_TEXT.length) {
-        setAngryDisplayedText(EMPTY_NAME_WARNING_TEXT.slice(0, i));
-        if (
-          i < EMPTY_NAME_WARNING_TEXT.length &&
-          EMPTY_NAME_WARNING_TEXT[i] !== " " &&
-          EMPTY_NAME_WARNING_TEXT[i] !== "\n"
-        ) {
-          playBeep();
-        }
-        i++;
-      } else if (angrySpeechIntervalRef.current !== null) {
-        window.clearInterval(angrySpeechIntervalRef.current);
-        angrySpeechIntervalRef.current = null;
-      }
-    }, 82);
-  }, [playBeep]);
-
-  const playConfirmSpeech = useCallback(
-    (name: string) => {
-      if (confirmSpeechIntervalRef.current !== null) {
-        window.clearInterval(confirmSpeechIntervalRef.current);
-      }
-
-      const confirmText = buildNameConfirmText(name);
-      setConfirmDisplayedText("");
-      let i = 0;
-      confirmSpeechIntervalRef.current = window.setInterval(() => {
-        if (i <= confirmText.length) {
-          setConfirmDisplayedText(confirmText.slice(0, i));
-          if (i < confirmText.length && confirmText[i] !== " " && confirmText[i] !== "\n") {
-            playBeep();
-          }
-          i++;
-        } else if (confirmSpeechIntervalRef.current !== null) {
-          window.clearInterval(confirmSpeechIntervalRef.current);
-          confirmSpeechIntervalRef.current = null;
-        }
-      }, 82);
-    },
-    [playBeep],
-  );
-
-  const playSendoffSpeech = useCallback(
-    (name: string, onDone: () => void) => {
-      if (sendoffSpeechIntervalRef.current !== null) {
-        window.clearInterval(sendoffSpeechIntervalRef.current);
-      }
-
-      const sendoffText = buildSendoffText(name);
-      setSendoffDisplayedText("");
-      let i = 0;
-      sendoffSpeechIntervalRef.current = window.setInterval(() => {
-        if (i <= sendoffText.length) {
-          setSendoffDisplayedText(sendoffText.slice(0, i));
-          if (i < sendoffText.length && sendoffText[i] !== " " && sendoffText[i] !== "\n") {
-            playBeep();
-          }
-          i++;
-        } else if (sendoffSpeechIntervalRef.current !== null) {
-          window.clearInterval(sendoffSpeechIntervalRef.current);
-          sendoffSpeechIntervalRef.current = null;
-          onDone();
-        }
-      }, 82);
-    },
-    [playBeep],
-  );
-
-  const playRejectBeep = useCallback(() => {
-    void (async () => {
-      const ctx = audioCtxRef.current;
-      if (!ctx) return;
-      if (ctx.state === "suspended") {
-        await ctx.resume();
-      }
-      if (ctx.state !== "running") return;
-
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sawtooth";
-      osc.frequency.setValueAtTime(180, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(90, ctx.currentTime + 0.16);
-      gain.gain.setValueAtTime(0.12, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.16);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.16);
-    })().catch(() => {
-      // Browser autoplay restrictions may still block sound until the next user gesture.
-    });
-  }, []);
-
-  const handleUsernameChange = useCallback(
-    (nextUsername: string) => {
-      if (nextUsername !== username) {
-        playNameInputBeep(nextUsername.length < username.length);
-      }
-      if (nextUsername.trim()) {
-        setIsGopherAngry(false);
-        setAngryDisplayedText("");
-        if (angryTimeoutRef.current !== null) {
-          window.clearTimeout(angryTimeoutRef.current);
-          angryTimeoutRef.current = null;
-        }
-        if (angrySpeechIntervalRef.current !== null) {
-          window.clearInterval(angrySpeechIntervalRef.current);
-          angrySpeechIntervalRef.current = null;
-        }
-      }
-      setIsConfirmingName(false);
-      setConfirmDisplayedText("");
-      setIsSendingOff(false);
-      setSendoffDisplayedText("");
-      if (confirmSpeechIntervalRef.current !== null) {
-        window.clearInterval(confirmSpeechIntervalRef.current);
-        confirmSpeechIntervalRef.current = null;
-      }
-      if (sendoffSpeechIntervalRef.current !== null) {
-        window.clearInterval(sendoffSpeechIntervalRef.current);
-        sendoffSpeechIntervalRef.current = null;
-      }
-      setUsername(nextUsername);
-    },
-    [playNameInputBeep, username],
-  );
-
-  // タイプライターエフェクト
-  useEffect(() => {
-    let i = 0;
-    const interval = setInterval(() => {
-      if (i <= fullText.length) {
-        setDisplayedText(fullText.slice(0, i));
-
-        // スペースや改行以外の文字が表示されるタイミングで音を鳴らす
-        if (i < fullText.length && fullText[i] !== " " && fullText[i] !== "\n") {
-          playBeep();
-        }
-        i++;
-      } else {
-        clearInterval(interval);
-      }
-    }, 90); // 1文字ずつ表示 (ピコピコ感を出すため少し遅めの90msに設定)
-    return () => clearInterval(interval);
-  }, [fullText, playBeep]);
-
-  const handleBeginJourney = useCallback(() => {
-    const trimmedUsername = username.trim();
-    if (isTransitioning) return;
-    if (!trimmedUsername) {
-      setIsGopherAngry(true);
-      playAngrySpeech();
-      playRejectBeep();
-      if (angryTimeoutRef.current !== null) {
-        window.clearTimeout(angryTimeoutRef.current);
-      }
-      angryTimeoutRef.current = window.setTimeout(() => {
-        setIsGopherAngry(false);
-        setAngryDisplayedText("");
-        angryTimeoutRef.current = null;
-      }, 3000);
-      return;
-    }
-
-    setIsGopherAngry(false);
-    setAngryDisplayedText("");
-    setIsConfirmingName(true);
-    playConfirmSpeech(trimmedUsername);
-  }, [isTransitioning, playAngrySpeech, playConfirmSpeech, playRejectBeep, username]);
-
-  const handleConfirmNo = useCallback(() => {
-    setIsConfirmingName(false);
-    setConfirmDisplayedText("");
-    if (confirmSpeechIntervalRef.current !== null) {
-      window.clearInterval(confirmSpeechIntervalRef.current);
-      confirmSpeechIntervalRef.current = null;
-    }
-  }, []);
-
-  const handleConfirmYes = useCallback(() => {
-    const trimmedUsername = username.trim();
-    if (!trimmedUsername || isTransitioning) return;
-
-    setIsConfirmingName(false);
-    setConfirmDisplayedText("");
-    setIsSendingOff(true);
-
-    playSendoffSpeech(trimmedUsername, () => {
-      setIsTransitioning(true);
-      setIsSendingOff(false);
-
-      const titleStartAudio = new Audio(AUDIO_ASSETS.se.titleStart);
-      void titleStartAudio.play().catch(() => {
-        // Browser audio policies can still reject playback in some environments.
-      });
-
-      transitionTimeoutRef.current = window.setTimeout(() => {
-        onComplete(trimmedUsername);
-      }, JOURNEY_START_DELAY_MS);
-    });
-  }, [isTransitioning, onComplete, playSendoffSpeech, username]);
+  const {
+    dialogueText,
+    handleBeginJourney,
+    handleConfirmNo,
+    handleConfirmYes,
+    handleUsernameChange,
+    isConfirmingName,
+    isGopherAngry,
+    isSendingOff,
+    isTransitioning,
+    username,
+  } = useInitialProfileFlow({ onComplete });
 
   return (
     <div
@@ -532,44 +35,11 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
         color: "var(--color-pixel-white)",
       }}
     >
-      {/* 冒険の始まりを演出するパーティクルと光 */}
       <ParticleBackground />
-
-      {/* エンジニア感を強調するソースコードの断片 */}
       <CodeRain />
+      <BottomGlow />
+      <Scanlines />
 
-      {/* 魔法陣のような光の演出（下部から） */}
-      <motion.div
-        animate={{ opacity: [0.3, 0.6, 0.3] }}
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-        style={{
-          position: "absolute",
-          bottom: "-20vh",
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: "150vw",
-          height: "60vh",
-          background:
-            "radial-gradient(ellipse at center, rgba(0, 245, 255, 0.15) 0%, transparent 70%)",
-          pointerEvents: "none",
-          zIndex: 0,
-        }}
-      />
-
-      {/* 背景のスキャンライン（Appと共通） */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          inset: 0,
-          backgroundImage:
-            "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px)",
-          pointerEvents: "none",
-          zIndex: 1,
-        }}
-      />
-
-      {/* ウィンドウ展開アニメーション */}
       <motion.div
         initial={{ scaleY: 0, opacity: 0 }}
         animate={{
@@ -606,285 +76,134 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
           gap: "2rem",
         }}
       >
-        {/* ガイドテキスト */}
-        <div
-          style={{
-            minHeight: "3.5rem",
-            fontSize: "1.1rem",
-            whiteSpace: "pre-wrap",
-            lineHeight: "1.6",
-            width: "100%",
-          }}
-        >
-          {isConfirmingName
-            ? confirmDisplayedText
-            : isSendingOff
-              ? sendoffDisplayedText
-              : isGopherAngry
-                ? angryDisplayedText
-                : displayedText}
-          <motion.span
-            animate={{ opacity: [1, 0] }}
-            transition={{ duration: 0.8, repeat: Infinity, ease: steppedEase(2) }}
-          >
-            _
-          </motion.span>
-        </div>
-
-        {/* アバター表示エリア */}
-        <div
-          style={{
-            position: "relative",
-            width: "160px", // キャラクターを大きくした分、表示エリアも広げる
-            height: "160px",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          {/* 背後の回転魔法陣的な演出（レトロ風） */}
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-            style={{
-              position: "absolute",
-              top: "-20%",
-              left: "-20%",
-              width: "140%",
-              height: "140%",
-              border: "2px dashed var(--color-gold)",
-              borderRadius: "50%",
-              opacity: 0.15,
-              zIndex: 0,
-            }}
-          />
-
-          {/* ガクガクと呼吸するアバター */}
-          <motion.div
-            animate={
-              isGopherAngry
-                ? {
-                    x: [0, -4, 4, -3, 3, 0],
-                    y: [0, -3, 0],
-                    scaleY: [1, 1.03, 1],
-                  }
-                : isConfirmingName
-                  ? {
-                      y: [0, -3, 0],
-                      scaleY: [1, 1.04, 1],
-                    }
-                  : isSendingOff
-                    ? {
-                        y: [0, -5, 0],
-                        scaleY: [1, 1.06, 1],
-                      }
-                    : {
-                        scaleY: [1, 1.05, 1],
-                        y: [0, -4, 0],
-                      }
-            }
-            transition={{
-              duration: isGopherAngry ? 0.32 : isConfirmingName || isSendingOff ? 0.9 : 1.5,
-              repeat: isGopherAngry ? 1 : Infinity,
-              ease: steppedEase(isGopherAngry ? 5 : 4),
-            }}
-            style={{
-              width: "100%",
-              height: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              // キャラクターの左右の位置調整
-              // 左にずらしたい場合はマイナスの値（例: "-10px"）、右はプラスの値（例: "10px"）を設定してください
-              transform: "translateX(0px)",
-            }}
-          >
-            <GopherSprite
-              frameCount={isGopherAngry ? 8 : isConfirmingName || isSendingOff ? 4 : undefined}
-              row={isGopherAngry ? 5 : isConfirmingName || isSendingOff ? 4 : 0}
-            />
-          </motion.div>
-          {isGopherAngry && (
-            <motion.div
-              initial={{ opacity: 0, y: 6, scale: 0.9 }}
-              animate={{ opacity: [0, 1, 1, 0], y: [6, 0, 0, -4], scale: [0.9, 1, 1, 1] }}
-              transition={{ duration: 0.85, ease: steppedEase(5) }}
-              style={{
-                position: "absolute",
-                top: "-20px",
-                right: "-54px",
-                padding: "0.45rem 0.6rem",
-                border: "3px solid var(--color-gold)",
-                background: "var(--color-navy)",
-                color: "var(--color-gold)",
-                fontFamily: "var(--font-press)",
-                fontSize: "0.65rem",
-                boxShadow: "5px 5px 0 rgba(0,0,0,0.8)",
-                zIndex: 3,
-              }}
-            >
-              おーい！
-            </motion.div>
-          )}
-          {/* 影 */}
-          <motion.div
-            animate={{ scale: [1, 0.9, 1], opacity: [0.5, 0.3, 0.5] }}
-            transition={{
-              duration: 1.5,
-              repeat: Infinity,
-              ease: steppedEase(4),
-            }}
-            style={{
-              position: "absolute",
-              bottom: "-25px", // 上下（縦方向）の位置調整
-              // 影の左右の位置調整
-              // 基準位置から左右にずらしたい場合は "0px" の数値を変更してください（左はマイナス、右はプラス）
-              left: "calc(50% + 0px)",
-              x: "-50%", // 中央揃え用（Framer Motionの機能を利用）
-              width: "110px", // キャラクターが2.0倍になったので影も大きくする
-              height: "16px",
-              background: "rgba(0,0,0,0.6)",
-              borderRadius: "50%", // 影だけは少し丸みを持たせる（レトロゲームでよくある手法）
-            }}
-          />
-        </div>
-
-        {/* ユーザー名入力 */}
-        <div style={{ width: "100%" }}>
-          <label
-            style={{
-              display: "block",
-              marginBottom: "0.5rem",
-              fontSize: "0.8rem",
-              color: "var(--color-gold)",
-              letterSpacing: "0.1em",
-            }}
-          >
-            ▶ ENTER YOUR NAME
-          </label>
-          <div style={{ position: "relative" }}>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => handleUsernameChange(e.target.value)}
-              disabled={isTransitioning || isConfirmingName || isSendingOff}
-              style={{
-                width: "100%",
-                padding: "0.8rem",
-                fontSize: "1.2rem",
-                fontFamily: "var(--font-dot)",
-                background: "rgba(0,0,0,0.5)",
-                color: "var(--color-pixel-white)",
-                border: "2px solid rgba(255,255,255,0.4)",
-                outline: "none",
-                textAlign: "center",
-              }}
-              onFocus={(e) => (e.target.style.borderColor = "var(--color-gold)")}
-              onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.4)")}
-            />
-          </div>
-        </div>
-
-        {isConfirmingName ? (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "0.75rem",
-              width: "100%",
-            }}
-          >
-            <motion.button
-              whileHover={{ scale: 1.02, filter: "brightness(1.1)" }}
-              whileTap={{ scale: 0.98, y: 4, boxShadow: "0px 0px 0 var(--color-gold-dark)" }}
-              onClick={handleConfirmYes}
-              style={{
-                marginTop: "1rem",
-                width: "100%",
-                padding: "1rem",
-                fontSize: "0.9rem",
-                fontFamily: "var(--font-press)",
-                background: "var(--color-gold)",
-                color: "#000",
-                border: "none",
-                boxShadow: "0px 4px 0 var(--color-gold-dark)",
-                cursor: "pointer",
-                letterSpacing: "0.05em",
-              }}
-            >
-              YES
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.02, filter: "brightness(1.1)" }}
-              whileTap={{ scale: 0.98, y: 4, boxShadow: "0px 0px 0 rgba(0,0,0,0.8)" }}
-              onClick={handleConfirmNo}
-              style={{
-                marginTop: "1rem",
-                width: "100%",
-                padding: "1rem",
-                fontSize: "0.9rem",
-                fontFamily: "var(--font-press)",
-                background: "var(--color-navy)",
-                color: "var(--color-pixel-white)",
-                border: "2px solid rgba(255,255,255,0.45)",
-                boxShadow: "0px 4px 0 rgba(0,0,0,0.8)",
-                cursor: "pointer",
-                letterSpacing: "0.05em",
-              }}
-            >
-              NO
-            </motion.button>
-          </div>
-        ) : (
-          <motion.button
-            whileHover={isTransitioning ? undefined : { scale: 1.02, filter: "brightness(1.1)" }}
-            whileTap={
-              isTransitioning
-                ? undefined
-                : { scale: 0.98, y: 4, boxShadow: "0px 0px 0 var(--color-gold-dark)" }
-            }
-            onClick={handleBeginJourney}
-            disabled={isTransitioning}
-            animate={
-              isTransitioning
-                ? {
-                    backgroundColor: [
-                      "var(--color-gold)",
-                      "#ffffff",
-                      "var(--color-gold)",
-                      "#ffffff",
-                    ],
-                    boxShadow: [
-                      "0px 4px 0 var(--color-gold-dark)",
-                      "0px 0px 0 var(--color-gold-dark)",
-                      "0px 4px 0 var(--color-gold-dark)",
-                      "0px 0px 0 var(--color-gold-dark)",
-                    ],
-                  }
-                : undefined
-            }
-            transition={{ duration: 0.52, ease: steppedEase(4) }}
-            style={{
-              marginTop: "1rem",
-              width: "100%",
-              padding: "1rem",
-              fontSize: "1.1rem",
-              fontFamily: "var(--font-press)",
-              background: "var(--color-gold)",
-              color: "#000",
-              border: "none",
-              boxShadow: "0px 4px 0 var(--color-gold-dark)",
-              cursor: isTransitioning ? "not-allowed" : "pointer",
-              letterSpacing: "0.05em",
-              opacity: isTransitioning ? 0.75 : 1,
-            }}
-          >
-            {isTransitioning ? "START!" : isSendingOff ? "GOOD LUCK!" : "BEGIN JOURNEY"}
-          </motion.button>
-        )}
+        <DialogueBox text={dialogueText} />
+        <ProfileGopherStage
+          isConfirmingName={isConfirmingName}
+          isGopherAngry={isGopherAngry}
+          isSendingOff={isSendingOff}
+        />
+        <NameInput
+          disabled={isTransitioning || isConfirmingName || isSendingOff}
+          onChange={handleUsernameChange}
+          username={username}
+        />
+        <ProfileActions
+          isConfirmingName={isConfirmingName}
+          isSendingOff={isSendingOff}
+          isTransitioning={isTransitioning}
+          onBeginJourney={handleBeginJourney}
+          onConfirmNo={handleConfirmNo}
+          onConfirmYes={handleConfirmYes}
+        />
       </motion.div>
 
       {isTransitioning && <JourneyStartOverlay />}
+    </div>
+  );
+}
+
+function BottomGlow() {
+  return (
+    <motion.div
+      animate={{ opacity: [0.3, 0.6, 0.3] }}
+      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+      style={{
+        position: "absolute",
+        bottom: "-20vh",
+        left: "50%",
+        transform: "translateX(-50%)",
+        width: "150vw",
+        height: "60vh",
+        background:
+          "radial-gradient(ellipse at center, rgba(0, 245, 255, 0.15) 0%, transparent 70%)",
+        pointerEvents: "none",
+        zIndex: 0,
+      }}
+    />
+  );
+}
+
+function Scanlines() {
+  return (
+    <div
+      aria-hidden="true"
+      style={{
+        position: "absolute",
+        inset: 0,
+        backgroundImage:
+          "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px)",
+        pointerEvents: "none",
+        zIndex: 1,
+      }}
+    />
+  );
+}
+
+function DialogueBox({ text }: { text: string }) {
+  return (
+    <div
+      style={{
+        minHeight: "3.5rem",
+        fontSize: "1.1rem",
+        whiteSpace: "pre-wrap",
+        lineHeight: "1.6",
+        width: "100%",
+      }}
+    >
+      {text}
+      <motion.span
+        animate={{ opacity: [1, 0] }}
+        transition={{ duration: 0.8, repeat: Infinity, ease: steppedEase(2) }}
+      >
+        _
+      </motion.span>
+    </div>
+  );
+}
+
+function NameInput({
+  disabled,
+  onChange,
+  username,
+}: {
+  disabled: boolean;
+  onChange: (username: string) => void;
+  username: string;
+}) {
+  return (
+    <div style={{ width: "100%" }}>
+      <label
+        style={{
+          display: "block",
+          marginBottom: "0.5rem",
+          fontSize: "0.8rem",
+          color: "var(--color-gold)",
+          letterSpacing: "0.1em",
+        }}
+      >
+        ▶ ENTER YOUR NAME
+      </label>
+      <div style={{ position: "relative" }}>
+        <input
+          type="text"
+          value={username}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={disabled}
+          style={{
+            width: "100%",
+            padding: "0.8rem",
+            fontSize: "1.2rem",
+            fontFamily: "var(--font-dot)",
+            background: "rgba(0,0,0,0.5)",
+            color: "var(--color-pixel-white)",
+            border: "2px solid rgba(255,255,255,0.4)",
+            outline: "none",
+            textAlign: "center",
+          }}
+          onFocus={(e) => (e.target.style.borderColor = "var(--color-gold)")}
+          onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.4)")}
+        />
+      </div>
     </div>
   );
 }
