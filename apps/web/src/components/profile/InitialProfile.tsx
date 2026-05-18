@@ -28,6 +28,7 @@ const PIXEL_WIPE_TILES = Array.from({ length: 48 }, (_, i) => ({
   col: i % 8,
   row: Math.floor(i / 8),
 }));
+const EMPTY_NAME_WARNING_TEXT = "むむっ、名前がないぞ！\nコードネームを入力してくれ。";
 
 function CodeRain() {
   return (
@@ -207,12 +208,16 @@ function JourneyStartOverlay() {
 export function InitialProfile({ onComplete }: InitialProfileProps) {
   const [username, setUsername] = useState("octocat"); // GitHubからの取得名を想定
   const [displayedText, setDisplayedText] = useState("");
+  const [angryDisplayedText, setAngryDisplayedText] = useState("");
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isGopherAngry, setIsGopherAngry] = useState(false);
   const fullText = "歓迎しよう、新たな挑戦者よ。\n君のコードネームを教えてくれ。";
 
   // Web Audio APIによるピコピコ音の準備
   const audioCtxRef = useRef<AudioContext | null>(null);
   const transitionTimeoutRef = useRef<number | null>(null);
+  const angryTimeoutRef = useRef<number | null>(null);
+  const angrySpeechIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
     try {
@@ -232,6 +237,12 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
       audioCtxRef.current = null;
       if (transitionTimeoutRef.current !== null) {
         window.clearTimeout(transitionTimeoutRef.current);
+      }
+      if (angryTimeoutRef.current !== null) {
+        window.clearTimeout(angryTimeoutRef.current);
+      }
+      if (angrySpeechIntervalRef.current !== null) {
+        window.clearInterval(angrySpeechIntervalRef.current);
       }
     };
   }, []);
@@ -285,10 +296,72 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
     });
   }, []);
 
+  const playAngrySpeech = useCallback(() => {
+    if (angrySpeechIntervalRef.current !== null) {
+      window.clearInterval(angrySpeechIntervalRef.current);
+    }
+
+    setAngryDisplayedText("");
+    let i = 0;
+    angrySpeechIntervalRef.current = window.setInterval(() => {
+      if (i <= EMPTY_NAME_WARNING_TEXT.length) {
+        setAngryDisplayedText(EMPTY_NAME_WARNING_TEXT.slice(0, i));
+        if (
+          i < EMPTY_NAME_WARNING_TEXT.length &&
+          EMPTY_NAME_WARNING_TEXT[i] !== " " &&
+          EMPTY_NAME_WARNING_TEXT[i] !== "\n"
+        ) {
+          playBeep();
+        }
+        i++;
+      } else if (angrySpeechIntervalRef.current !== null) {
+        window.clearInterval(angrySpeechIntervalRef.current);
+        angrySpeechIntervalRef.current = null;
+      }
+    }, 82);
+  }, [playBeep]);
+
+  const playRejectBeep = useCallback(() => {
+    void (async () => {
+      const ctx = audioCtxRef.current;
+      if (!ctx) return;
+      if (ctx.state === "suspended") {
+        await ctx.resume();
+      }
+      if (ctx.state !== "running") return;
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(180, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(90, ctx.currentTime + 0.16);
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.16);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.16);
+    })().catch(() => {
+      // Browser autoplay restrictions may still block sound until the next user gesture.
+    });
+  }, []);
+
   const handleUsernameChange = useCallback(
     (nextUsername: string) => {
       if (nextUsername !== username) {
         playNameInputBeep(nextUsername.length < username.length);
+      }
+      if (nextUsername.trim()) {
+        setIsGopherAngry(false);
+        setAngryDisplayedText("");
+        if (angryTimeoutRef.current !== null) {
+          window.clearTimeout(angryTimeoutRef.current);
+          angryTimeoutRef.current = null;
+        }
+        if (angrySpeechIntervalRef.current !== null) {
+          window.clearInterval(angrySpeechIntervalRef.current);
+          angrySpeechIntervalRef.current = null;
+        }
       }
       setUsername(nextUsername);
     },
@@ -316,7 +389,21 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
 
   const handleBeginJourney = useCallback(() => {
     const trimmedUsername = username.trim();
-    if (!trimmedUsername || isTransitioning) return;
+    if (isTransitioning) return;
+    if (!trimmedUsername) {
+      setIsGopherAngry(true);
+      playAngrySpeech();
+      playRejectBeep();
+      if (angryTimeoutRef.current !== null) {
+        window.clearTimeout(angryTimeoutRef.current);
+      }
+      angryTimeoutRef.current = window.setTimeout(() => {
+        setIsGopherAngry(false);
+        setAngryDisplayedText("");
+        angryTimeoutRef.current = null;
+      }, 3000);
+      return;
+    }
 
     setIsTransitioning(true);
 
@@ -328,7 +415,7 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
     transitionTimeoutRef.current = window.setTimeout(() => {
       onComplete(trimmedUsername);
     }, JOURNEY_START_DELAY_MS);
-  }, [isTransitioning, onComplete, username]);
+  }, [isTransitioning, onComplete, playAngrySpeech, playRejectBeep, username]);
 
   return (
     <div
@@ -424,7 +511,7 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
             width: "100%",
           }}
         >
-          {displayedText}
+          {isGopherAngry ? angryDisplayedText : displayedText}
           <motion.span
             animate={{ opacity: [1, 0] }}
             transition={{ duration: 0.8, repeat: Infinity, ease: steppedEase(2) }}
@@ -463,14 +550,22 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
 
           {/* ガクガクと呼吸するアバター */}
           <motion.div
-            animate={{
-              scaleY: [1, 1.05, 1],
-              y: [0, -4, 0],
-            }}
+            animate={
+              isGopherAngry
+                ? {
+                    x: [0, -4, 4, -3, 3, 0],
+                    y: [0, -3, 0],
+                    scaleY: [1, 1.03, 1],
+                  }
+                : {
+                    scaleY: [1, 1.05, 1],
+                    y: [0, -4, 0],
+                  }
+            }
             transition={{
-              duration: 1.5,
-              repeat: Infinity,
-              ease: steppedEase(4),
+              duration: isGopherAngry ? 0.32 : 1.5,
+              repeat: isGopherAngry ? 1 : Infinity,
+              ease: steppedEase(isGopherAngry ? 5 : 4),
             }}
             style={{
               width: "100%",
@@ -483,8 +578,30 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
               transform: "translateX(0px)",
             }}
           >
-            <GopherSprite />
+            <GopherSprite frameCount={isGopherAngry ? 8 : undefined} row={isGopherAngry ? 5 : 0} />
           </motion.div>
+          {isGopherAngry && (
+            <motion.div
+              initial={{ opacity: 0, y: 6, scale: 0.9 }}
+              animate={{ opacity: [0, 1, 1, 0], y: [6, 0, 0, -4], scale: [0.9, 1, 1, 1] }}
+              transition={{ duration: 0.85, ease: steppedEase(5) }}
+              style={{
+                position: "absolute",
+                top: "-20px",
+                right: "-54px",
+                padding: "0.45rem 0.6rem",
+                border: "3px solid var(--color-gold)",
+                background: "var(--color-navy)",
+                color: "var(--color-gold)",
+                fontFamily: "var(--font-press)",
+                fontSize: "0.65rem",
+                boxShadow: "5px 5px 0 rgba(0,0,0,0.8)",
+                zIndex: 3,
+              }}
+            >
+              おーい！
+            </motion.div>
+          )}
           {/* 影 */}
           <motion.div
             animate={{ scale: [1, 0.9, 1], opacity: [0.5, 0.3, 0.5] }}
@@ -553,7 +670,7 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
               : { scale: 0.98, y: 4, boxShadow: "0px 0px 0 var(--color-gold-dark)" }
           }
           onClick={handleBeginJourney}
-          disabled={isTransitioning || username.trim().length === 0}
+          disabled={isTransitioning}
           animate={
             isTransitioning
               ? {
@@ -578,9 +695,9 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
             color: "#000",
             border: "none",
             boxShadow: "0px 4px 0 var(--color-gold-dark)",
-            cursor: isTransitioning || username.trim().length === 0 ? "not-allowed" : "pointer",
+            cursor: isTransitioning ? "not-allowed" : "pointer",
             letterSpacing: "0.05em",
-            opacity: isTransitioning || username.trim().length === 0 ? 0.75 : 1,
+            opacity: isTransitioning ? 0.75 : 1,
           }}
         >
           {isTransitioning ? "START!" : "BEGIN JOURNEY"}
