@@ -77,3 +77,34 @@ func (r *mypageCPReader) GetTotalEarned(ctx context.Context, userID user.ID) (in
 func (r *mypageCPReader) GetTotalSpent(ctx context.Context, userID user.ID) (int64, error) {
 	return r.totals.GetTotalSpent(ctx, userID)
 }
+
+type homeCPDataProvider struct {
+	balance interface {
+		GetBalance(ctx context.Context, userID user.ID, pointType contributionpointdomain.PointType) (int64, error)
+	}
+	todayEarned interface {
+		GetTodayEarned(ctx context.Context, userID user.ID) (int64, error)
+	}
+}
+
+func newHomeCPDataProvider(
+	balance interface {
+		GetBalance(ctx context.Context, userID user.ID, pointType contributionpointdomain.PointType) (int64, error)
+	},
+	todayEarned interface {
+		GetTodayEarned(ctx context.Context, userID user.ID) (int64, error)
+	},
+) *homeCPDataProvider {
+	return &homeCPDataProvider{
+		balance:     balance,
+		todayEarned: todayEarned,
+	}
+}
+
+func (p *homeCPDataProvider) GetBalance(ctx context.Context, userID user.ID) (int64, error) {
+	return p.balance.GetBalance(ctx, userID, contributionpointdomain.PointTypeCP)
+}
+
+func (p *homeCPDataProvider) GetTodayEarned(ctx context.Context, userID user.ID) (int64, error) {
+	return p.todayEarned.GetTodayEarned(ctx, userID)
+}
