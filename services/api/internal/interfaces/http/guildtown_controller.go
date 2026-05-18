@@ -3,12 +3,15 @@ package http
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"log/slog"
 	stdhttp "net/http"
 
 	guildtownapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/guildtown"
 	guildtowndomain "github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/guildtown"
 )
+
+const guildTownPlacementsRequestMaxBytes = 1 << 20
 
 type GuildTownController struct {
 	usecase *guildtownapp.UseCase
@@ -84,7 +87,19 @@ func (c *GuildTownController) savePlacements(w stdhttp.ResponseWriter, r *stdhtt
 			Width        float64 `json:"width"`
 		} `json:"placements"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	r.Body = stdhttp.MaxBytesReader(w, r.Body, guildTownPlacementsRequestMaxBytes)
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&request); err != nil {
+		var maxBytesErr *stdhttp.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			writeAPIError(w, stdhttp.StatusRequestEntityTooLarge, "invalid_request_body", "request body too large", 0, nil)
+			return
+		}
+		writeAPIError(w, stdhttp.StatusBadRequest, "invalid_json", "invalid json", 0, nil)
+		return
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
 		writeAPIError(w, stdhttp.StatusBadRequest, "invalid_json", "invalid json", 0, nil)
 		return
 	}
