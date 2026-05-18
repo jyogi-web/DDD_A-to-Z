@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/repositoryanalysis"
+	"github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/user"
 )
 
 const analysisPeriod = -30 * 24 * time.Hour
@@ -76,6 +77,10 @@ func (u *UseCase) Analyze(ctx context.Context, sessionToken string) (AnalysisRes
 		return AnalysisResult{}, ErrUnauthenticated
 	}
 
+	return u.AnalyzeForUser(ctx, appUser, sessionToken, now)
+}
+
+func (u *UseCase) AnalyzeForUser(ctx context.Context, appUser user.User, sessionToken string, now time.Time) (AnalysisResult, error) {
 	accessToken, ok, err := u.tokens.GitHubAccessToken(ctx, appUser.ID)
 	if err != nil {
 		return AnalysisResult{}, err
