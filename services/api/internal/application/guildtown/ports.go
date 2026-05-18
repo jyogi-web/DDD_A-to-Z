@@ -1,0 +1,28 @@
+package guildtown
+
+import (
+	"context"
+	"time"
+
+	guilddomain "github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/guild"
+	guildtowndomain "github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/guildtown"
+	"github.com/jyogi-web/ddd-a-to-z/services/api/internal/domain/user"
+)
+
+type Repository interface {
+	ListInventory(ctx context.Context, guildID guilddomain.ID) ([]guildtowndomain.InventoryItem, error)
+	ListPlacements(ctx context.Context, guildID guilddomain.ID) ([]guildtowndomain.Placement, error)
+	ReplacePlacements(ctx context.Context, guildID guilddomain.ID, placements []guildtowndomain.Placement) error
+}
+
+type CurrentUserRepository interface {
+	FindUserBySessionToken(ctx context.Context, sessionToken string, now time.Time) (user.User, bool, error)
+}
+
+type GuildRepository interface {
+	FindActiveMembershipByUserID(ctx context.Context, userID user.ID) (guilddomain.MembershipWithGuild, bool, error)
+}
+
+type IDGenerator interface {
+	NewID() (string, error)
+}
