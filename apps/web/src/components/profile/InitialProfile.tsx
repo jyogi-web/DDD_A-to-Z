@@ -29,6 +29,8 @@ const PIXEL_WIPE_TILES = Array.from({ length: 48 }, (_, i) => ({
   row: Math.floor(i / 8),
 }));
 const EMPTY_NAME_WARNING_TEXT = "むむっ、名前がないぞ！\nコードネームを入力してくれ。";
+const buildNameConfirmText = (name: string) =>
+  `そのコードネームは「${name}」でよいのだな？\nよければ、旅立ちの合図をくれ。`;
 
 function CodeRain() {
   return (
@@ -209,8 +211,10 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
   const [username, setUsername] = useState("octocat"); // GitHubからの取得名を想定
   const [displayedText, setDisplayedText] = useState("");
   const [angryDisplayedText, setAngryDisplayedText] = useState("");
+  const [confirmDisplayedText, setConfirmDisplayedText] = useState("");
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isGopherAngry, setIsGopherAngry] = useState(false);
+  const [isConfirmingName, setIsConfirmingName] = useState(false);
   const fullText = "歓迎しよう、新たな挑戦者よ。\n君のコードネームを教えてくれ。";
 
   // Web Audio APIによるピコピコ音の準備
@@ -218,6 +222,7 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
   const transitionTimeoutRef = useRef<number | null>(null);
   const angryTimeoutRef = useRef<number | null>(null);
   const angrySpeechIntervalRef = useRef<number | null>(null);
+  const confirmSpeechIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
     try {
@@ -243,6 +248,9 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
       }
       if (angrySpeechIntervalRef.current !== null) {
         window.clearInterval(angrySpeechIntervalRef.current);
+      }
+      if (confirmSpeechIntervalRef.current !== null) {
+        window.clearInterval(confirmSpeechIntervalRef.current);
       }
     };
   }, []);
@@ -321,6 +329,31 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
     }, 82);
   }, [playBeep]);
 
+  const playConfirmSpeech = useCallback(
+    (name: string) => {
+      if (confirmSpeechIntervalRef.current !== null) {
+        window.clearInterval(confirmSpeechIntervalRef.current);
+      }
+
+      const confirmText = buildNameConfirmText(name);
+      setConfirmDisplayedText("");
+      let i = 0;
+      confirmSpeechIntervalRef.current = window.setInterval(() => {
+        if (i <= confirmText.length) {
+          setConfirmDisplayedText(confirmText.slice(0, i));
+          if (i < confirmText.length && confirmText[i] !== " " && confirmText[i] !== "\n") {
+            playBeep();
+          }
+          i++;
+        } else if (confirmSpeechIntervalRef.current !== null) {
+          window.clearInterval(confirmSpeechIntervalRef.current);
+          confirmSpeechIntervalRef.current = null;
+        }
+      }, 82);
+    },
+    [playBeep],
+  );
+
   const playRejectBeep = useCallback(() => {
     void (async () => {
       const ctx = audioCtxRef.current;
@@ -362,6 +395,12 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
           window.clearInterval(angrySpeechIntervalRef.current);
           angrySpeechIntervalRef.current = null;
         }
+      }
+      setIsConfirmingName(false);
+      setConfirmDisplayedText("");
+      if (confirmSpeechIntervalRef.current !== null) {
+        window.clearInterval(confirmSpeechIntervalRef.current);
+        confirmSpeechIntervalRef.current = null;
       }
       setUsername(nextUsername);
     },
@@ -405,7 +444,27 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
       return;
     }
 
+    setIsGopherAngry(false);
+    setAngryDisplayedText("");
+    setIsConfirmingName(true);
+    playConfirmSpeech(trimmedUsername);
+  }, [isTransitioning, playAngrySpeech, playConfirmSpeech, playRejectBeep, username]);
+
+  const handleConfirmNo = useCallback(() => {
+    setIsConfirmingName(false);
+    setConfirmDisplayedText("");
+    if (confirmSpeechIntervalRef.current !== null) {
+      window.clearInterval(confirmSpeechIntervalRef.current);
+      confirmSpeechIntervalRef.current = null;
+    }
+  }, []);
+
+  const handleConfirmYes = useCallback(() => {
+    const trimmedUsername = username.trim();
+    if (!trimmedUsername || isTransitioning) return;
+
     setIsTransitioning(true);
+    setIsConfirmingName(false);
 
     const titleStartAudio = new Audio(AUDIO_ASSETS.se.titleStart);
     void titleStartAudio.play().catch(() => {
@@ -415,7 +474,7 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
     transitionTimeoutRef.current = window.setTimeout(() => {
       onComplete(trimmedUsername);
     }, JOURNEY_START_DELAY_MS);
-  }, [isTransitioning, onComplete, playAngrySpeech, playRejectBeep, username]);
+  }, [isTransitioning, onComplete, username]);
 
   return (
     <div
@@ -511,7 +570,11 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
             width: "100%",
           }}
         >
-          {isGopherAngry ? angryDisplayedText : displayedText}
+          {isConfirmingName
+            ? confirmDisplayedText
+            : isGopherAngry
+              ? angryDisplayedText
+              : displayedText}
           <motion.span
             animate={{ opacity: [1, 0] }}
             transition={{ duration: 0.8, repeat: Infinity, ease: steppedEase(2) }}
@@ -557,13 +620,18 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
                     y: [0, -3, 0],
                     scaleY: [1, 1.03, 1],
                   }
-                : {
-                    scaleY: [1, 1.05, 1],
-                    y: [0, -4, 0],
-                  }
+                : isConfirmingName
+                  ? {
+                      y: [0, -3, 0],
+                      scaleY: [1, 1.04, 1],
+                    }
+                  : {
+                      scaleY: [1, 1.05, 1],
+                      y: [0, -4, 0],
+                    }
             }
             transition={{
-              duration: isGopherAngry ? 0.32 : 1.5,
+              duration: isGopherAngry ? 0.32 : isConfirmingName ? 0.9 : 1.5,
               repeat: isGopherAngry ? 1 : Infinity,
               ease: steppedEase(isGopherAngry ? 5 : 4),
             }}
@@ -578,7 +646,10 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
               transform: "translateX(0px)",
             }}
           >
-            <GopherSprite frameCount={isGopherAngry ? 8 : undefined} row={isGopherAngry ? 5 : 0} />
+            <GopherSprite
+              frameCount={isGopherAngry ? 8 : isConfirmingName ? 4 : undefined}
+              row={isGopherAngry ? 5 : isConfirmingName ? 4 : 0}
+            />
           </motion.div>
           {isGopherAngry && (
             <motion.div
@@ -643,7 +714,7 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
               type="text"
               value={username}
               onChange={(e) => handleUsernameChange(e.target.value)}
-              disabled={isTransitioning}
+              disabled={isTransitioning || isConfirmingName}
               style={{
                 width: "100%",
                 padding: "0.8rem",
@@ -661,47 +732,103 @@ export function InitialProfile({ onComplete }: InitialProfileProps) {
           </div>
         </div>
 
-        {/* 決定ボタン */}
-        <motion.button
-          whileHover={isTransitioning ? undefined : { scale: 1.02, filter: "brightness(1.1)" }}
-          whileTap={
-            isTransitioning
-              ? undefined
-              : { scale: 0.98, y: 4, boxShadow: "0px 0px 0 var(--color-gold-dark)" }
-          }
-          onClick={handleBeginJourney}
-          disabled={isTransitioning}
-          animate={
-            isTransitioning
-              ? {
-                  backgroundColor: ["var(--color-gold)", "#ffffff", "var(--color-gold)", "#ffffff"],
-                  boxShadow: [
-                    "0px 4px 0 var(--color-gold-dark)",
-                    "0px 0px 0 var(--color-gold-dark)",
-                    "0px 4px 0 var(--color-gold-dark)",
-                    "0px 0px 0 var(--color-gold-dark)",
-                  ],
-                }
-              : undefined
-          }
-          transition={{ duration: 0.52, ease: steppedEase(4) }}
-          style={{
-            marginTop: "1rem",
-            width: "100%",
-            padding: "1rem",
-            fontSize: "1.1rem",
-            fontFamily: "var(--font-press)",
-            background: "var(--color-gold)",
-            color: "#000",
-            border: "none",
-            boxShadow: "0px 4px 0 var(--color-gold-dark)",
-            cursor: isTransitioning ? "not-allowed" : "pointer",
-            letterSpacing: "0.05em",
-            opacity: isTransitioning ? 0.75 : 1,
-          }}
-        >
-          {isTransitioning ? "START!" : "BEGIN JOURNEY"}
-        </motion.button>
+        {isConfirmingName ? (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "0.75rem",
+              width: "100%",
+            }}
+          >
+            <motion.button
+              whileHover={{ scale: 1.02, filter: "brightness(1.1)" }}
+              whileTap={{ scale: 0.98, y: 4, boxShadow: "0px 0px 0 var(--color-gold-dark)" }}
+              onClick={handleConfirmYes}
+              style={{
+                marginTop: "1rem",
+                width: "100%",
+                padding: "1rem",
+                fontSize: "0.9rem",
+                fontFamily: "var(--font-press)",
+                background: "var(--color-gold)",
+                color: "#000",
+                border: "none",
+                boxShadow: "0px 4px 0 var(--color-gold-dark)",
+                cursor: "pointer",
+                letterSpacing: "0.05em",
+              }}
+            >
+              YES
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02, filter: "brightness(1.1)" }}
+              whileTap={{ scale: 0.98, y: 4, boxShadow: "0px 0px 0 rgba(0,0,0,0.8)" }}
+              onClick={handleConfirmNo}
+              style={{
+                marginTop: "1rem",
+                width: "100%",
+                padding: "1rem",
+                fontSize: "0.9rem",
+                fontFamily: "var(--font-press)",
+                background: "var(--color-navy)",
+                color: "var(--color-pixel-white)",
+                border: "2px solid rgba(255,255,255,0.45)",
+                boxShadow: "0px 4px 0 rgba(0,0,0,0.8)",
+                cursor: "pointer",
+                letterSpacing: "0.05em",
+              }}
+            >
+              NO
+            </motion.button>
+          </div>
+        ) : (
+          <motion.button
+            whileHover={isTransitioning ? undefined : { scale: 1.02, filter: "brightness(1.1)" }}
+            whileTap={
+              isTransitioning
+                ? undefined
+                : { scale: 0.98, y: 4, boxShadow: "0px 0px 0 var(--color-gold-dark)" }
+            }
+            onClick={handleBeginJourney}
+            disabled={isTransitioning}
+            animate={
+              isTransitioning
+                ? {
+                    backgroundColor: [
+                      "var(--color-gold)",
+                      "#ffffff",
+                      "var(--color-gold)",
+                      "#ffffff",
+                    ],
+                    boxShadow: [
+                      "0px 4px 0 var(--color-gold-dark)",
+                      "0px 0px 0 var(--color-gold-dark)",
+                      "0px 4px 0 var(--color-gold-dark)",
+                      "0px 0px 0 var(--color-gold-dark)",
+                    ],
+                  }
+                : undefined
+            }
+            transition={{ duration: 0.52, ease: steppedEase(4) }}
+            style={{
+              marginTop: "1rem",
+              width: "100%",
+              padding: "1rem",
+              fontSize: "1.1rem",
+              fontFamily: "var(--font-press)",
+              background: "var(--color-gold)",
+              color: "#000",
+              border: "none",
+              boxShadow: "0px 4px 0 var(--color-gold-dark)",
+              cursor: isTransitioning ? "not-allowed" : "pointer",
+              letterSpacing: "0.05em",
+              opacity: isTransitioning ? 0.75 : 1,
+            }}
+          >
+            {isTransitioning ? "START!" : "BEGIN JOURNEY"}
+          </motion.button>
+        )}
       </motion.div>
 
       {isTransitioning && <JourneyStartOverlay />}
