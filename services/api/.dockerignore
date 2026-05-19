@@ -1,0 +1,10 @@
+.env
+.env.*
+
+.git
+.gitignore
+
+.turbo
+.cache
+
+*.md

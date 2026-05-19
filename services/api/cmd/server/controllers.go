@@ -7,6 +7,7 @@ import (
 	contributionpointapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/contributionpoint"
 	githubapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/github"
 	guildapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/guild"
+	guildtownapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/guildtown"
 	mypageapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/mypage"
 	profileapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/profile"
 	analysisapp "github.com/jyogi-web/ddd-a-to-z/services/api/internal/application/repositoryanalysis"
@@ -22,6 +23,7 @@ type controllerSet struct {
 	auth       *httpapi.AuthController
 	repository *httpapi.RepositoryController
 	guild      *httpapi.GuildController
+	guildTown  *httpapi.GuildTownController
 	mypage     *httpapi.MypageController
 	profile    *httpapi.ProfileController
 	analysis   *httpapi.AnalysisController
@@ -33,6 +35,7 @@ func (c controllerSet) registrars() []httpapi.RouteRegistrar {
 		c.auth,
 		c.repository,
 		c.guild,
+		c.guildTown,
 		c.mypage,
 		c.profile,
 		c.analysis,
@@ -63,6 +66,7 @@ func buildControllers(logger *slog.Logger, db *gorm.DB) (controllerSet, error) {
 	if err != nil {
 		return controllerSet{}, err
 	}
+	guildTownStore := postgres.NewGuildTownStore(db)
 
 	authUseCase := authapp.NewUseCase(
 		oauthClient,
@@ -87,6 +91,12 @@ func buildControllers(logger *slog.Logger, db *gorm.DB) (controllerSet, error) {
 		security.NewIDGenerator("guild_cp_contribution"),
 		cpUseCase,
 		postgres.NewGuildCPContributionTransactioner(db, cpLedgerIDGenerator),
+	)
+	guildTownUseCase := guildtownapp.NewUseCase(
+		guildTownStore,
+		authStore,
+		guildStore,
+		security.NewIDGenerator("guild_town_placement"),
 	)
 	mypageUseCase := mypageapp.NewUseCase(
 		authStore,
@@ -121,6 +131,7 @@ func buildControllers(logger *slog.Logger, db *gorm.DB) (controllerSet, error) {
 		),
 		repository: httpapi.NewRepositoryController(repositoryUseCase, logger),
 		guild:      httpapi.NewGuildController(guildUseCase, logger),
+		guildTown:  httpapi.NewGuildTownController(guildTownUseCase, logger),
 		mypage:     httpapi.NewMypageController(mypageUseCase, logger),
 		profile:    httpapi.NewProfileController(profileUseCase, logger),
 		analysis:   httpapi.NewAnalysisController(newAnalysisGuard(analysisUseCase, authStore), logger),
