@@ -21,10 +21,31 @@ interface HomeProps {
 const defaultPlayer = {
   name: "DevSamurai",
   title: "Consistency Master",
-  level: 18,
+  level: 1,
+  levelTotalCp: 0,
   totalCp: 0,
   todayCp: 0,
+  nextLevel: 2,
+  nextLevelTotalCp: 100,
+  nextLevelRemainingCp: 100,
+  lifetimeTotalEarnedCp: 0,
 };
+
+function playerLevelFromTotalEarned(totalEarned: number) {
+  if (totalEarned <= 0) {
+    return 1;
+  }
+
+  return Math.floor(Math.sqrt(totalEarned / 100)) + 1;
+}
+
+function totalEarnedForPlayerLevel(level: number) {
+  if (level <= 1) {
+    return 0;
+  }
+
+  return (level - 1) ** 2 * 100;
+}
 
 const navItems = [
   { label: "WAR MAP", caption: "BATTLE FRONT", path: PATHS.WAR, accent: "#ff5f56" },
@@ -61,6 +82,16 @@ export function Home({ onNavigate }: HomeProps) {
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [cpData, setCpData] = useState<HomeCPData | null>(null);
+  const lifetimeTotalEarnedCp = cpData?.lifetime_total_earned_cp ?? cpData?.total_cp ?? 0;
+  const playerLevel = cpData?.player_level ?? playerLevelFromTotalEarned(lifetimeTotalEarnedCp);
+  const playerLevelTotalCp =
+    cpData?.player_level_total_cp ?? totalEarnedForPlayerLevel(playerLevel);
+  const nextPlayerLevel = cpData?.next_player_level ?? playerLevel + 1;
+  const nextPlayerLevelTotalCp =
+    cpData?.next_player_level_total_cp ?? totalEarnedForPlayerLevel(nextPlayerLevel);
+  const nextPlayerLevelRemainingCp =
+    cpData?.next_player_level_remaining ??
+    Math.max(0, nextPlayerLevelTotalCp - lifetimeTotalEarnedCp);
 
   useEffect(() => {
     try {
@@ -213,8 +244,14 @@ export function Home({ onNavigate }: HomeProps) {
           player={{
             ...defaultPlayer,
             name: profile?.display_name || defaultPlayer.name,
+            level: playerLevel,
+            levelTotalCp: playerLevelTotalCp,
             totalCp: cpData?.total_cp ?? defaultPlayer.totalCp,
             todayCp: cpData?.today_cp ?? defaultPlayer.todayCp,
+            nextLevel: nextPlayerLevel,
+            nextLevelTotalCp: nextPlayerLevelTotalCp,
+            nextLevelRemainingCp: nextPlayerLevelRemainingCp,
+            lifetimeTotalEarnedCp: lifetimeTotalEarnedCp,
           }}
           onReturnTitle={openReturnTitleDialog}
         />
