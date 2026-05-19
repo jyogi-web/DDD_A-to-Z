@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { HomeHud } from "./HomeHud";
 import type { GuildSummary } from "./HomeHud";
+import { HomeFirstVisitGuide } from "./HomeFirstVisitGuide";
 import { HomeNav } from "./HomeNav";
 import { ReturnTitleDialog } from "./ReturnTitleDialog";
 import { AudioTogglePanel } from "../shared/AudioTogglePanel";
@@ -30,9 +31,11 @@ const navItems = [
   { label: "GUILD BASE", caption: "COMMUNITY HQ", path: PATHS.GUILD, accent: "#00f5ff" },
   { label: "MY STATUS", caption: "PLAYER DATA", path: PATHS.MY_PAGE, accent: "#ffd700" },
 ];
+const homeFirstVisitGuideKey = "lang-war.home.first-visit-guide-seen";
 
 export function Home({ onNavigate }: HomeProps) {
   const [isReturnTitleDialogOpen, setIsReturnTitleDialogOpen] = useState(false);
+  const [isFirstVisitGuideOpen, setIsFirstVisitGuideOpen] = useState(false);
   const [guild, setGuild] = useState<GuildSummary | null | undefined>(undefined);
   const navigateFromHome = (path: string) => {
     if (path === PATHS.GUILD && guild === undefined) {
@@ -58,6 +61,14 @@ export function Home({ onNavigate }: HomeProps) {
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [cpData, setCpData] = useState<HomeCPData | null>(null);
+
+  useEffect(() => {
+    try {
+      setIsFirstVisitGuideOpen(window.localStorage.getItem(homeFirstVisitGuideKey) !== "true");
+    } catch {
+      setIsFirstVisitGuideOpen(true);
+    }
+  }, []);
 
   useEffect(() => {
     fetchProfile().then(setProfile).catch(console.error);
@@ -97,6 +108,15 @@ export function Home({ onNavigate }: HomeProps) {
   const openReturnTitleDialog = () => {
     playModalOpen();
     setIsReturnTitleDialogOpen(true);
+  };
+
+  const dismissFirstVisitGuide = () => {
+    try {
+      window.localStorage.setItem(homeFirstVisitGuideKey, "true");
+    } catch {
+      // The guide can still close even if localStorage is unavailable.
+    }
+    setIsFirstVisitGuideOpen(false);
   };
 
   return (
@@ -216,6 +236,8 @@ export function Home({ onNavigate }: HomeProps) {
       {isReturnTitleDialogOpen && (
         <ReturnTitleDialog onCancel={cancelReturnTitle} onConfirm={playReturnTitle} />
       )}
+
+      {isFirstVisitGuideOpen && <HomeFirstVisitGuide onDismiss={dismissFirstVisitGuide} />}
 
       {audioError && (
         <div
