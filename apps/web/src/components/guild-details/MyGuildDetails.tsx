@@ -249,14 +249,6 @@ export function MyGuildDetails({ onNavigate }: MyGuildDetailsProps) {
 
             <div className={styles.actions}>
               <motion.button
-                className={styles.copyButton}
-                type="button"
-                whileHover={{ y: -2, scale: 1.02 }}
-                whileTap={{ y: 2, scale: 0.98 }}
-              >
-                INVITE LINK
-              </motion.button>
-              <motion.button
                 className={styles.leaveButton}
                 type="button"
                 disabled={isLeaving || isLoading || !guild}
